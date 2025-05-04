@@ -34,6 +34,9 @@ C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Mono.TextTemplating.dll
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Npgsql.dll
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\System.CodeDom.dll
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\System.Composition.AttributedModel.dll
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\System.Composition.Convention.dll
@@ -113,6 +116,7 @@ C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\GastAPI.csproj.CoreCompileInputs.cache
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\GastAPI.MvcApplicationPartsAssemblyInfo.cs
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\GastAPI.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\GastAPI.sourcelink.json
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\scopedcss\bundle\GastAPI.styles.css
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\staticwebassets.build.json
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\staticwebassets.development.json
@@ -129,7 +133,3 @@ C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\GastAPI.pdb
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\GastAPI.genruntimeconfig.cache
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\ref\GastAPI.dll
-C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
-C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
-C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
-C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\GastAPI.sourcelink.json
