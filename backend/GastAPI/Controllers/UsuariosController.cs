@@ -29,7 +29,7 @@ namespace GastAPI.Controllers
         {
             var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario == null) return NotFound();
-
+        
             return usuario;
         }
 

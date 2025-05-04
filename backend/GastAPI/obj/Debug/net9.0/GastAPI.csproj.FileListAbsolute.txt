@@ -132,3 +132,4 @@ C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+C:\Users\rony0\Documents\Proyecto_Grado\GastApp\backend\GastAPI\obj\Debug\net9.0\GastAPI.sourcelink.json
