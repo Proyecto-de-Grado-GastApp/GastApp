@@ -24,7 +24,7 @@ namespace GastAPI.Models
         [MaxLength(255)]
         public required string Email { get; set; }
 
-        [MaxLength(255)] // Considera usar hash para contraseñas
+        [MaxLength(255)]
         public required string Contrasena { get; set; }
 
         //Auditoría
