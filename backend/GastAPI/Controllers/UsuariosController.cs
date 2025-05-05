@@ -1,7 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
-using GastAPI.Models;
 using GastAPI.Data;
+using GastAPI.Dtos;
+using GastAPI.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace GastAPI.Controllers
 {
@@ -10,71 +16,98 @@ namespace GastAPI.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _config;
 
-        public UsuariosController(AppDbContext context)
+        public UsuariosController(AppDbContext context, IConfiguration config)
         {
             _context = context;
+            _config = config;
         }
 
-        // GET: api/usuarios
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuarios()
         {
             return await _context.Usuarios.ToListAsync();
         }
 
-        // GET: api/usuarios/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Usuario>> GetUsuario(int id)
+        public async Task<ActionResult<Usuario>> GetUsuario(long id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario == null) return NotFound();
-        
             return usuario;
         }
 
-        // POST: api/usuarios
-        [HttpPost]
-        public async Task<ActionResult<Usuario>> PostUsuario(Usuario usuario)
+        [HttpPost("registrar")]
+        public async Task<ActionResult<Usuario>> Registrar([FromBody] RegistroDTO dto)
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            if (await _context.Usuarios.AnyAsync(u => u.Email == dto.Email))
+                return BadRequest("El correo ya está en uso");
+
+            var usuario = new Usuario
+            {
+                Nombre = dto.Nombre,
+                Email = dto.Email,
+                Contrasena = HashPassword(dto.Contrasena),
+                FechaCreacion = DateTime.UtcNow,
+                FechaActualizacion = DateTime.UtcNow
+            };
+
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetUsuario), new { id = usuario.Id }, usuario);
         }
 
-        // PUT: api/usuarios/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUsuario(int id, Usuario usuario)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDTO dto)
         {
-            if (id != usuario.Id) return BadRequest();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            _context.Entry(usuario).State = EntityState.Modified;
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            if (usuario == null || !VerifyPassword(dto.Contrasena, usuario.Contrasena))
+                return Unauthorized("Correo o contraseña incorrectos");
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Usuarios.Any(e => e.Id == id)) return NotFound();
-                else throw;
-            }
-
-            return NoContent();
+            var token = GenerateJwtToken(usuario);
+            return Ok(new { token });
         }
 
-        // DELETE: api/usuarios/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUsuario(int id)
+        private string HashPassword(string password)
         {
-            var usuario = await _context.Usuarios.FindAsync(id);
-            if (usuario == null) return NotFound();
+            using var sha256 = SHA256.Create();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(hashedBytes);
+        }
 
-            _context.Usuarios.Remove(usuario);
-            await _context.SaveChangesAsync();
+        private bool VerifyPassword(string inputPassword, string storedHash)
+        {
+            var inputHash = HashPassword(inputPassword);
+            return inputHash == storedHash;
+        }
 
-            return NoContent();
+        private string GenerateJwtToken(Usuario usuario)
+        {
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
+                new Claim("nombre", usuario.Nombre),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
