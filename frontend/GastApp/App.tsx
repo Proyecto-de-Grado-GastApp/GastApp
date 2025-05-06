@@ -16,6 +16,8 @@ const App = () => {
   // Si el presupuesto es valido
   const [isValidPresupuesto, setisValidPresupuesto] = useState(false)
 
+   const [presupuesto, setpresupuesto] = useState(0)
+
   // Función para validar el presupuesto
   const handleNuevoPresupuesto = (presupuesto: number) => {
     if (presupuesto > 0) {
@@ -31,9 +33,13 @@ const App = () => {
       <View style={styles.header}>
         <Header/>
 
-        {isValidPresupuesto ? <ControlPresupuesto/> : (
-            <NuevoPresupuesto
-            handleNuevoPresupuesto={handleNuevoPresupuesto}
+        {isValidPresupuesto ? <ControlPresupuesto
+          presupuesto = {presupuesto}
+        /> : (
+            <NuevoPresupuesto 
+              presupuesto = {presupuesto}
+              setpresupuesto={setpresupuesto}
+              handleNuevoPresupuesto={handleNuevoPresupuesto}
           />
         ) }
 

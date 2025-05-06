@@ -1,17 +1,24 @@
-import React, {useState} from 'react'
+import React from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 
 import globalStyles from '../styles/index';
 
-// Creo la interfaz para establecer el tipo de dato de la función que valida el valor introducido en el presupuesto
+/* Creo la interfaz para establecer el tipo de dato de la función que valida el valor introducido en el presupuesto
+ y recibir el estado del presupuseto de App para poder mandarlo también a la ventana de contro de presupuesto*/
 interface NuevoPresupuesto {
+    presupuesto: number;
+    setpresupuesto: (presupuesto: number) => void;
     handleNuevoPresupuesto: (presupuesto: number) => void;
   }
 
-const NuevoPresupuesto = ({handleNuevoPresupuesto}: NuevoPresupuesto) => {
+const NuevoPresupuesto = ({
+    presupuesto,
+    setpresupuesto,
+    handleNuevoPresupuesto,
+}: NuevoPresupuesto) => {
 
     // useState para capturar el valor introducido en el presupuesto
-    const [presupuesto, setpresupuesto] = useState(0)
+   
 
   return (
     <View style={styles.contenedor}>
