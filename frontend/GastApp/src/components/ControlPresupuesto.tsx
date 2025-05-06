@@ -2,16 +2,16 @@ import React, {useState,useEffect} from 'react'
 import { Text, View, Image, StyleSheet } from "react-native";
 
 import globalStyles from '../styles/index';
-import { formatearCantidad } from '../helpers' ;
-
-interface Presupuestos {
-    presupuesto:number
-    gastos :Gasto[]
-}
+import { formatearCantidad } from '../helpers';
 
 interface Gasto {
     id:number;
     cantidad:number;
+}
+
+interface Presupuestos {
+    presupuesto:number
+    gastos :Gasto[]
 }
 
 const ControlPresupuesto = ({presupuesto, gastos}:Presupuestos,) => {

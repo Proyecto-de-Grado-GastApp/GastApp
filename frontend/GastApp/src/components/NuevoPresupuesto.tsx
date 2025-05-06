@@ -14,10 +14,9 @@ interface NuevoPresupuesto {
 const NuevoPresupuesto = ({
     presupuesto,
     setpresupuesto,
-    handleNuevoPresupuesto,
-}: NuevoPresupuesto) => {
+    handleNuevoPresupuesto}: NuevoPresupuesto) => {
 
-    // useState para capturar el valor introducido en el presupuesto
+    // useState para capturar el valor introducido en el presupuesto => Está en APP
    
 
   return (

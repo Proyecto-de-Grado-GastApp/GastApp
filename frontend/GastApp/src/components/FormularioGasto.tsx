@@ -1,35 +1,121 @@
 import React from 'react'
 import { Text, SafeAreaView, View, TextInput, StyleSheet, Pressable } from 'react-native'
+import { Picker } from "@react-native-picker/picker";
 
-const FormularioGasto = () => {
+import globalStyles from '../styles/index';
+
+interface Modal {
+    setModal : (modal:boolean) => void
+}
+
+const FormularioGasto = ({setModal}:Modal) => {
   return (
-    <SafeAreaView>
-        <View>
-            <Text>
-                Cancelar
-            </Text>
-        </View>
+    <SafeAreaView style={styles.contenedor}>
+        <Pressable 
+            style={styles.closeBtn}
+            onLongPress={() => setModal(false)}
+        >
+            <Text style={styles.closeBtnText}>Cancelar</Text>
+        </Pressable>
 
-        <View>
-            <Text>Nuevo Gasto</Text>
-        </View>
+        <View style={styles.formulario}>
+            <View>
+                <Text style={styles.titulo}>Nuevo Gasto</Text>
+            </View>
 
-        <View>
-            <Text>Nombre</Text>
-            <TextInput
-                placeholder='Nombre del gasto. Ej: Comida '
-            />
-        </View>
+            <View style={styles.campo}>
+                <Text style={styles.label}>Nombre</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder='Nombre del gasto. Ej: Comida '
+                />
+            </View>
 
-        <View>
-            <Text>Importe</Text>
-            <TextInput
-                placeholder='Importe del gasto. Ej: 30'
-                keyboardType='numeric'
-            />
+            <View style={styles.campo}>
+                <Text style={styles.label}>Importe</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder='Importe del gasto. Ej: 30'
+                    keyboardType='numeric'
+                />
+            </View>
+
+            <View style={styles.campo}>
+                <Text style={styles.label}>Categoría</Text>
+                <Picker>
+                    <Picker.Item label='-- Seleccione --' value=""/>
+                    <Picker.Item label='Comida' value="comida"/>
+                    <Picker.Item label='Ahorro' value="ahorro"/>
+                    <Picker.Item label='Suscripciones' value="suscripciones"/>
+                    <Picker.Item label='Ocio' value="Ocio"/>
+                    <Picker.Item label='Salud' value="Salud"/>
+                </Picker>
+            </View>
+
+            <Pressable style={styles.submitBtn}>
+                <Text style={styles.submitBtnText}>Guardar</Text>
+            </Pressable>
+
         </View>
     </SafeAreaView>
   )
 }
+
+const styles = StyleSheet.create({
+    contenedor: {
+        backgroundColor: "#1e40af",
+        flex: 1
+    },
+    closeBtn:{
+        backgroundColor: "#db2777",
+        padding: 10,
+        marginTop: 30,
+        marginHorizontal: 10,
+    },
+    closeBtnText:{
+        textTransform: 'uppercase',
+        color: "white",
+        fontWeight: 'bold',
+        textAlign: 'center'
+    },
+    formulario:{
+        ...globalStyles.contenedor
+    },
+    titulo:{
+        textAlign: 'center',
+        fontSize: 28,
+        marginBottom: 30,
+        color: "#64748b"
+    },
+    campo:{
+        marginVertical: 10
+    },
+    label:{
+        color: "#64748b",
+        textTransform: 'uppercase',
+        fontSize: 16,
+        fontWeight: 'bold'
+    },
+    input:{
+        backgroundColor: "#F5F5F5",
+        padding: 10,
+        borderRadius: 10,
+        marginTop: 10
+    },
+    submitBtn: {
+        backgroundColor: "#3b82f6",
+        padding: 10,
+        marginTop: 20,
+        borderRadius: 10
+    },
+    submitBtnText:{
+        textAlign: 'center',
+        color: "white",
+        fontWeight: 'bold',
+        textTransform: 'uppercase'
+    },
+    
+
+})
 
 export default FormularioGasto

@@ -69,7 +69,7 @@ const App = () => {
       )}
 
       <Modal visible={modal} animationType='slide'>
-        <FormularioGasto/>
+        <FormularioGasto setModal={setModal} />
       </Modal>
     </View>
     
