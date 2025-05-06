@@ -1,18 +1,37 @@
-import React from 'react'
+import React, {useState} from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 
-const NuevoPresupuesto = () => {
+import globalStyles from '../styles/index';
+
+// Creo la interfaz para establecer el tipo de dato de la función que valida el valor introducido en el presupuesto
+interface NuevoPresupuesto {
+    handleNuevoPresupuesto: (presupuesto: number) => void;
+  }
+
+const NuevoPresupuesto = ({handleNuevoPresupuesto}: NuevoPresupuesto) => {
+
+    // useState para capturar el valor introducido en el presupuesto
+    const [presupuesto, setpresupuesto] = useState(0)
+
   return (
     <View style={styles.contenedor}>
         <Text style={styles.label}>Definir Presupuesto</Text>
 
         <TextInput
             keyboardType='numeric'
-            placeholder='Introduce tu presupuesto: Ej. 300'
             style={styles.input}
+            value={presupuesto.toString()} // No modifica a String, solo lo muestra
+            /* onChangeText devuelve un string pero nuestra variable presupuesto es de tipo number, por eso debemos pasar el texto a number para que
+            setpresupuesto lo acepte
+            */
+            onChangeText={(text) => setpresupuesto(Number(text))} 
+
         />
 
-        <Pressable style={styles.boton}>
+        <Pressable 
+            style={styles.boton}
+            onPress={() => handleNuevoPresupuesto(presupuesto)}    
+        >
             <Text style={styles.botonText}>Agregar Presupuesto</Text>
         </Pressable>
 
@@ -22,20 +41,7 @@ const NuevoPresupuesto = () => {
 
 const styles = StyleSheet.create({
     contenedor:{
-        backgroundColor: "white",
-        marginHorizontal: 10,
-        borderRadius: 10,
-        padding: 20,
-        transform: [{translateY: 40}],
-        shadowColor: "black",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.23,
-        shadowRadius: 2.62,
-
-        elevation: 4,
+        ...globalStyles.contenedor
     },
     label:{
         textAlign: 'center',
