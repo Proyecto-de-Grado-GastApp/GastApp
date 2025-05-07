@@ -6,13 +6,15 @@ import {
   Alert,
   Pressable,
   Image,
-  Modal
+  Modal,
+  ScrollView
 } from 'react-native';
 
 import Header from './src/components/Header';
 import NuevoPresupuesto from './src/components/NuevoPresupuesto';
 import ControlPresupuesto from './src/components/ControlPresupuesto';
 import FormularioGasto from './src/components/FormularioGasto';
+import ListadoGastos from './src/components/ListadoGastos';
 import { generarId } from './src/helpers/index';
 import { Gastos } from './src/types';
 
@@ -62,24 +64,43 @@ const App = () => {
   
   return(
     <View style={styles.contenedor}>
+      <ScrollView>
 
-      <View style={styles.header}>
-        <Header/>
+        <View style={styles.header}>
+          <Header/>
 
-        {isValidPresupuesto ? <ControlPresupuesto
-          presupuesto = {presupuesto}
-          gastos = {gastos}
-        /> : (
-            <NuevoPresupuesto 
-              presupuesto = {presupuesto}
-              setpresupuesto={setpresupuesto}
-              handleNuevoPresupuesto={handleNuevoPresupuesto}
+          {isValidPresupuesto ? <ControlPresupuesto
+            presupuesto = {presupuesto}
+            gastos = {gastos}
+          /> : (
+              <NuevoPresupuesto 
+                presupuesto = {presupuesto}
+                setpresupuesto={setpresupuesto}
+                handleNuevoPresupuesto={handleNuevoPresupuesto}
+            />
+          ) }
+
+          
+        </View>
+
+        {/* Mostramos los gastos creados */}
+        {isValidPresupuesto && (
+          <ListadoGastos
+            gastos = {gastos}
           />
-        ) }
+        )}
 
-        
-      </View>
-      
+    </ScrollView>
+
+
+      {/* Modal para mostrar el formulario de crear nuevo gasto */}
+      <Modal visible={modal} animationType='slide'>
+        <FormularioGasto 
+          setModal={setModal} 
+          evaluarGasto={evaluarGasto}
+        />
+      </Modal>
+
       {/* Mostramos botón para añadir gastos una vez que el presupuesto introducido es válido */}
       {/* Los && indican que si la condición es verdadera se ejecuta el código a continuación */}
       {isValidPresupuesto && (
@@ -91,13 +112,8 @@ const App = () => {
         </Pressable>
       )}
 
-      {/* Modal para mostrar el formulario de crear nuevo gasto */}
-      <Modal visible={modal} animationType='slide'>
-        <FormularioGasto 
-          setModal={setModal} 
-          evaluarGasto={evaluarGasto}
-        />
-      </Modal>
+      
+
     </View>
     
   )
@@ -116,8 +132,8 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     position: 'absolute',
-    top: 120,
-    right: 20
+    bottom: 40,
+    right: 30
   }
 });
 
