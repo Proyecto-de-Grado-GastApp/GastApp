@@ -14,7 +14,7 @@ namespace GastAPI.Models
         public long GastoId { get; set; }
         public Gasto Gasto { get; set; } = null!;
 
-        public required DateTime FechaCambio { get; set; } = DateTime.Now;
+        public required DateTime FechaCambio { get; set; } = DateTime.UtcNow;
 
         [Required]
         [MaxLength(500)]  // Limitar la longitud del campo a 500 caracteres
@@ -22,7 +22,7 @@ namespace GastAPI.Models
         public string Descripcion { get; set; } = string.Empty;
 
         // Auditoría
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
-        public DateTime FechaActualizacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+        public DateTime FechaActualizacion { get; set; } = DateTime.UtcNow;
     }
 }

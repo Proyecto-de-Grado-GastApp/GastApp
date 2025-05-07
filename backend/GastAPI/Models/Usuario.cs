@@ -28,8 +28,8 @@ namespace GastAPI.Models
         public required string Contrasena { get; set; }
 
         //Auditoría
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
-        public DateTime FechaActualizacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+        public DateTime FechaActualizacion { get; set; } = DateTime.UtcNow;
 
         // Relaciones
         public ICollection<Gasto> Gastos { get; set; }

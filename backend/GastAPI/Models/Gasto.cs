@@ -44,8 +44,8 @@ namespace GastAPI.Models
         public string Nota { get; set; } = string.Empty;
 
         // Auditoría
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
-        public DateTime FechaActualizacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+        public DateTime FechaActualizacion { get; set; } = DateTime.UtcNow;
 
         // Relaciones inversas
         public ICollection<RecordatorioPago> Recordatorios { get; set; } = new HashSet<RecordatorioPago>();

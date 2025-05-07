@@ -18,8 +18,8 @@ namespace GastAPI.Models
         public string Nombre { get; set; } = null!;
 
         // Auditoría
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
-        public DateTime FechaActualizacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+        public DateTime FechaActualizacion { get; set; } = DateTime.UtcNow;
 
         // Relación con EtiquetaGasto (tabla de unión para N-N con Gastos)
         public ICollection<EtiquetaGasto> GastosEtiquetados { get; set; } = new HashSet<EtiquetaGasto>();

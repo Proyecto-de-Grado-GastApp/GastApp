@@ -19,7 +19,7 @@ namespace GastAPI.Models
         public Gasto Gasto { get; set; } = null!;
 
         // Auditoría
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
-        public DateTime FechaActualizacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+        public DateTime FechaActualizacion { get; set; } = DateTime.UtcNow;
     }
 }
