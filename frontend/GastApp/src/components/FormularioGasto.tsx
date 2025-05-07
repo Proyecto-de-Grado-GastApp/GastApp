@@ -1,14 +1,27 @@
-import React from 'react'
+import React, {useState} from 'react'
 import { Text, SafeAreaView, View, TextInput, StyleSheet, Pressable } from 'react-native'
 import { Picker } from "@react-native-picker/picker";
 
 import globalStyles from '../styles/index';
+import { Gastos } from '../types';
 
-interface Modal {
-    setModal : (modal:boolean) => void
+
+interface Recibido {
+    setModal : (modal:boolean) => void;
+    evaluarGasto: (gasto: Gastos) => void;
 }
 
-const FormularioGasto = ({setModal}:Modal) => {
+const FormularioGasto = ({setModal, evaluarGasto}:Recibido) => {
+
+    // Nombre del gasto
+    const [nombre, setNombre] = useState('');
+
+    // Cantidad del gasto
+    const [cantidad, setImporte] = useState(0);
+
+    // Categoría del gasto
+    const [categoria, setCategoria] = useState('');
+
   return (
     <SafeAreaView style={styles.contenedor}>
         <Pressable 
@@ -27,7 +40,9 @@ const FormularioGasto = ({setModal}:Modal) => {
                 <Text style={styles.label}>Nombre</Text>
                 <TextInput
                     style={styles.input}
-                    placeholder='Nombre del gasto. Ej: Comida '
+                    placeholder='Nombre del gasto. Ej: Comida'
+                    value={nombre}
+                    onChangeText={setNombre}
                 />
             </View>
 
@@ -37,12 +52,14 @@ const FormularioGasto = ({setModal}:Modal) => {
                     style={styles.input}
                     placeholder='Importe del gasto. Ej: 30'
                     keyboardType='numeric'
+                    value={cantidad.toString()}
+                    onChangeText={(text) => setImporte(Number(text))}
                 />
             </View>
 
             <View style={styles.campo}>
                 <Text style={styles.label}>Categoría</Text>
-                <Picker>
+                <Picker selectedValue={categoria} onValueChange={(itemValue) => setCategoria(itemValue)}>
                     <Picker.Item label='-- Seleccione --' value=""/>
                     <Picker.Item label='Comida' value="comida"/>
                     <Picker.Item label='Ahorro' value="ahorro"/>
@@ -52,7 +69,12 @@ const FormularioGasto = ({setModal}:Modal) => {
                 </Picker>
             </View>
 
-            <Pressable style={styles.submitBtn}>
+            <Pressable 
+                style={styles.submitBtn}
+                onPress={() => evaluarGasto({
+                    nombre, cantidad, categoria
+                })}
+            >
                 <Text style={styles.submitBtnText}>Guardar</Text>
             </Pressable>
 

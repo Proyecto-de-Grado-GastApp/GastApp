@@ -13,6 +13,11 @@ import Header from './src/components/Header';
 import NuevoPresupuesto from './src/components/NuevoPresupuesto';
 import ControlPresupuesto from './src/components/ControlPresupuesto';
 import FormularioGasto from './src/components/FormularioGasto';
+import { generarId } from './src/helpers/index';
+import { Gastos } from './src/types';
+
+
+
 
 
 const App = () => {
@@ -27,15 +32,33 @@ const App = () => {
     if (presupuesto > 0) {
       setisValidPresupuesto(true)
     } else {
-      Alert.alert('Error', 'El presupuesto debe ser mayor que 0', [{text: 'Aceptar'}] )
+      Alert.alert('Error', 'El presupuesto debe ser mayor que 0', [{text: 'Aceptar'}])
     }
   }
 
-  // Gastos creados a mano para calcular el gastado y disponible en ControPresupuesto
-  const [gastos, setgastos] = useState([]);
+  // Gastos creados por el usuario en la aplicación
+  const [gastos, setGastos] = useState<Gastos[]>([]);
+
 
   // Modal para añadir un gasto nuevo
   const [modal, setModal] = useState(false);
+
+  // Función para validar el formulario de nuevo gasto
+  const evaluarGasto = (gasto: Gastos) => {
+    // Object.values crea un array con los valores introducidos en el objeto
+    if (Object.values(gasto).includes('')) {
+        Alert.alert('Error', 'Todos los campos son obligatorios',[{text: 'Aceptar'}]) 
+      return  
+    } 
+    
+    // Añadir el nuevo gasto al state
+    
+    gasto.id = generarId();
+    setGastos([...gastos,gasto]);
+    console.log(gasto);
+    setModal(false);
+
+  }
   
   return(
     <View style={styles.contenedor}>
@@ -57,7 +80,7 @@ const App = () => {
         
       </View>
       
-      {/* Mostramos botón para añadir gastos */}
+      {/* Mostramos botón para añadir gastos una vez que el presupuesto introducido es válido */}
       {/* Los && indican que si la condición es verdadera se ejecuta el código a continuación */}
       {isValidPresupuesto && (
         <Pressable onPress={() => setModal(true)}>
@@ -68,8 +91,12 @@ const App = () => {
         </Pressable>
       )}
 
+      {/* Modal para mostrar el formulario de crear nuevo gasto */}
       <Modal visible={modal} animationType='slide'>
-        <FormularioGasto setModal={setModal} />
+        <FormularioGasto 
+          setModal={setModal} 
+          evaluarGasto={evaluarGasto}
+        />
       </Modal>
     </View>
     

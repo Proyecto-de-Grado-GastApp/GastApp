@@ -3,15 +3,11 @@ import { Text, View, Image, StyleSheet } from "react-native";
 
 import globalStyles from '../styles/index';
 import { formatearCantidad } from '../helpers';
-
-interface Gasto {
-    id:number;
-    cantidad:number;
-}
+import { Gastos } from '../types';
 
 interface Presupuestos {
     presupuesto:number
-    gastos :Gasto[]
+    gastos :Gastos[]
 }
 
 const ControlPresupuesto = ({presupuesto, gastos}:Presupuestos,) => {
