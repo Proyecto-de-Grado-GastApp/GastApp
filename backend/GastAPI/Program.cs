@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using GastAPI.Services;
-using GastAPI.Seeders;
+// using GastAPI.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,12 +45,12 @@ builder.Services.AddScoped<JwtService>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-     var services = scope.ServiceProvider;
-     var context = services.GetRequiredService<AppDbContext>();
-    DbInitializer.Seed(context);
-}
+// using (var scope = app.Services.CreateScope())
+// {
+//      var services = scope.ServiceProvider;
+//      var context = services.GetRequiredService<AppDbContext>();
+//     DbInitializer.Seed(context);
+// }
 
 // Configura el pipeline HTTP
 if (app.Environment.IsDevelopment())
