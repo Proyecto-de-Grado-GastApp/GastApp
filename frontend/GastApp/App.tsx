@@ -17,6 +17,7 @@ import FormularioGasto from './src/components/FormularioGasto';
 import ListadoGastos from './src/components/ListadoGastos';
 import { generarId } from './src/helpers/index';
 import { Gastos } from './src/types';
+import { initialGastoState } from './src/types';
 
 
 
@@ -48,19 +49,34 @@ const App = () => {
   // Función para validar el formulario de nuevo gasto
   const evaluarGasto = (gasto: Gastos) => {
     // Object.values crea un array con los valores introducidos en el objeto
-    if (Object.values(gasto).includes('')) {
+    if ([gasto.nombre, gasto.cantidad, gasto.categoria].includes('')) {
         Alert.alert('Error', 'Todos los campos son obligatorios',[{text: 'Aceptar'}]) 
       return  
     } 
-    
-    // Añadir el nuevo gasto al state
-    
-    gasto.id = generarId();
-    setGastos([...gastos,gasto]);
-    console.log(gasto);
-    setModal(false);
 
+    // Si el id del gasto está relleno significa que estamos editando un gasto que ya existe
+    if (gasto.id) {
+      /* gastos.map recorre los gastos y compara el gasto introducido con el gasto ya existente,
+      si coincide devuelve el gasto actual, sino devuelve el gasto modificado */
+      const gastosActualizados = gastos.map(gastoState => gastoState.id === gasto.id ? gasto : gastoState  )
+
+      setGastos(gastosActualizados);
+
+    } else {
+      // Genereamos id y fecha de registro
+      gasto.id = generarId();
+      gasto.fecha = Date.now();
+
+      // Añadimos el nuevo gasto al state
+      setGastos([...gastos,gasto]);
+      console.log(gasto);
+      
+    }
+    setModal(false);
   }
+
+  // Estado para abrir el formulario para modificar los gastos creados
+  const [modificarGasto, setModificarGasto] = useState<Gastos>(initialGastoState);
   
   return(
     <View style={styles.contenedor}>
@@ -87,6 +103,8 @@ const App = () => {
         {isValidPresupuesto && (
           <ListadoGastos
             gastos = {gastos}
+            setModal={setModal}
+            setModificarGasto={setModificarGasto}
           />
         )}
 
@@ -98,6 +116,10 @@ const App = () => {
         <FormularioGasto 
           setModal={setModal} 
           evaluarGasto={evaluarGasto}
+          setModificarGasto={setModificarGasto}
+          modificarGasto={modificarGasto}
+
+
         />
       </Modal>
 

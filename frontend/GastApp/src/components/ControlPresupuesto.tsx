@@ -26,7 +26,7 @@ const ControlPresupuesto = ({presupuesto, gastos}:Presupuestos,) => {
         setGastado(totalGastado);
 
         setDisponible(totalDisponible);
-    }, [])
+    }, [gastos])
     
       
     
@@ -41,13 +41,13 @@ const ControlPresupuesto = ({presupuesto, gastos}:Presupuestos,) => {
 
         <View style={styles.contenedorTexto}>
             <Text style={styles.valor}>
-                <Text style={styles.label}>Presupuesto {''}</Text>
-                {formatearCantidad(presupuesto)}
+                <Text style={styles.label}>Disponible {''}</Text>
+                {formatearCantidad(disponible)}
             </Text>
 
             <Text style={styles.valor}>
-                <Text style={styles.label}>Disponible {''}</Text>
-                {formatearCantidad(disponible)}
+                <Text style={styles.label}>Presupuesto {''}</Text>
+                {formatearCantidad(presupuesto)}
             </Text>
 
             <Text style={styles.valor}>
