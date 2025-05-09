@@ -13,3 +13,15 @@ export const generarId = () => {
 
     return random + fecha;
 }
+
+export const formatearFecha = (fecha: number | undefined) => {
+    if (!fecha) return "-";
+
+    const opciones: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+    };
+    
+    return new Date(fecha).toLocaleDateString('es-ES', opciones);
+};
