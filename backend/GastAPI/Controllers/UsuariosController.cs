@@ -1,5 +1,5 @@
 using GastAPI.Data;
-using GastAPI.Dtos;
+using GastAPI.Dtos.Usuario;
 using GastAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

@@ -23,7 +23,7 @@ namespace GastAPI.Controllers
             return await _context.MetodosPago.ToListAsync();
         }
 
-        // GET: api/MetodosPago/5
+        // GET: api/MetodosPago/id
         [HttpGet("{id}")]
         public async Task<ActionResult<MetodoPago>> GetMetodoPago(long id)
         {
@@ -48,7 +48,7 @@ namespace GastAPI.Controllers
             return CreatedAtAction(nameof(GetMetodoPago), new { id = metodoPago.Id }, metodoPago);
         }
 
-        // PUT: api/MetodosPago/5
+        // PUT: api/MetodosPago/id
         [HttpPut("{id}")]
         public async Task<IActionResult> PutMetodoPago(long id, MetodoPago metodoPago)
         {
@@ -66,7 +66,7 @@ namespace GastAPI.Controllers
             return NoContent();
         }
 
-        // DELETE: api/MetodosPago/5
+        // DELETE: api/MetodosPago/id
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMetodoPago(long id)
         {
