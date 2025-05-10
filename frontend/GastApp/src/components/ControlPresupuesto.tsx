@@ -1,7 +1,7 @@
 import React, {useState,useEffect} from 'react'
 import { Text, View, Image, StyleSheet } from "react-native";
 
-import globalStyles from '../styles/index';
+import globalStyles from '../../assets/styles/index';
 import { formatearCantidad } from '../helpers';
 import { Gastos } from '../types';
 
@@ -36,7 +36,7 @@ const ControlPresupuesto = ({presupuesto, gastos}:Presupuestos,) => {
         <View style={styles.centrarGrafica}>
             <Image 
                 style={styles.imagen}
-                source={ require('../img/grafico.jpg')}/>
+                source={ require('../../assets/img/grafico.jpg')}/>
         </View>
 
         <View style={styles.contenedorTexto}>

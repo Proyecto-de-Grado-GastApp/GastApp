@@ -1,21 +1,20 @@
 import React from 'react'
 import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { Gastos } from '../types';
-import globalStyles from '../styles/index';
+import globalStyles from '../../assets/styles/index';
 import { formatearCantidad, formatearFecha } from "../helpers";
 
 
 const diccionarioIconos = {
-  ahorro: require('../img/icono_ahorro.png'),
-  comida: require('../img/icono_comida.png'),
-  casa: require('../img/icono_casa.png'),
-  gastos: require('../img/icono_gastos.png'),
-  ocio: require('../img/icono_ocio.png'),
-  salud: require('../img/icono_salud.png'),
-  suscripciones: require('../img/icono_suscripciones.png'),
+  ahorro: require('../../assets/img/icono_ahorro.png'),
+  comida: require('../../assets/img/icono_comida.png'),
+  casa: require('../../assets/img/icono_casa.png'),
+  gastos: require('../../assets/img/icono_gastos.png'),
+  ocio: require('../../assets/img/icono_ocio.png'),
+  salud: require('../../assets/img/icono_salud.png'),
+  suscripciones: require('../../assets/img/icono_suscripciones.png'),
   "": undefined
 }
-
 
 interface Gasto {
   gasto: Gastos;

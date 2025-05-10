@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 
-import globalStyles from '../styles/index';
+import globalStyles from '../../assets/styles/index';
 
 /* Creo la interfaz para establecer el tipo de dato de la función que valida el valor introducido en el presupuesto
  y recibir el estado del presupuseto de App para poder mandarlo también a la ventana de contro de presupuesto*/

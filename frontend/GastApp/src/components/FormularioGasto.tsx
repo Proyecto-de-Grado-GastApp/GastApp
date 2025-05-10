@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react'
 import { Text, SafeAreaView, View, TextInput, StyleSheet, Pressable } from 'react-native'
 import { Picker } from "@react-native-picker/picker";
 
-import globalStyles from '../styles/index';
+import globalStyles from '../../assets/styles/index';
 import { Gastos } from '../types';
 import { Categoria } from '../types';
 import { initialGastoState } from '../types';

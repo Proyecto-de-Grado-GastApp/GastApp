@@ -10,14 +10,14 @@ import {
   ScrollView
 } from 'react-native';
 
-import Header from './src/components/Header';
-import NuevoPresupuesto from './src/components/NuevoPresupuesto';
-import ControlPresupuesto from './src/components/ControlPresupuesto';
-import FormularioGasto from './src/components/FormularioGasto';
-import ListadoGastos from './src/components/ListadoGastos';
-import { generarId } from './src/helpers/index';
-import { Gastos } from './src/types';
-import { initialGastoState } from './src/types';
+import Header from './components/Header';
+import NuevoPresupuesto from './components/NuevoPresupuesto';
+import ControlPresupuesto from './components/ControlPresupuesto';
+import FormularioGasto from './components/FormularioGasto';
+import ListadoGastos from './components/ListadoGastos';
+import { generarId } from './helpers/index';
+import { Gastos } from './types';
+import { initialGastoState } from './types';
 
 
 
@@ -129,7 +129,7 @@ const App = () => {
         <Pressable onPress={() => setModal(true)}>
           <Image
             style={styles.imagen}
-            source={require('./src/img/nuevo-gasto.png')}
+            source={require('../assets/img/nuevo-gasto.png')}
           />
         </Pressable>
       )}
