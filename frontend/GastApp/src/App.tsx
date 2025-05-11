@@ -19,11 +19,11 @@ import { generarId } from './helpers/index';
 import { Gastos } from './types';
 import { initialGastoState } from './types';
 
-
-
+import LoginScreen from './screens/LoginScreen';
 
 
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Si el presupuesto es valido cambiamos la pantalla cambiando el valor de este useState
   const [isValidPresupuesto, setisValidPresupuesto] = useState(false)
@@ -77,7 +77,11 @@ const App = () => {
 
   // Estado para abrir el formulario para modificar los gastos creados
   const [modificarGasto, setModificarGasto] = useState<Gastos>(initialGastoState);
-  
+
+  // if (!isAuthenticated) {
+  //   return <LoginScreen onLoginSuccess={() => setIsAuthenticated(true)} />;
+  // }
+
   return(
     <View style={styles.contenedor}>
       <ScrollView>
