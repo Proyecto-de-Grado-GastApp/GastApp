@@ -2,17 +2,18 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import CustomInput from '../components/CustomInput';
 import { registerUser } from '../api/auth';
+import { useNavigation } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-type Props = {
-  onRegisterSuccess: () => void;
-  onBackToLogin: () => void;
-};
+type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
-const RegisterScreen = ({ onRegisterSuccess, onBackToLogin }: Props) => {
+const RegisterScreen = () => {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const navigation = useNavigation<RegisterScreenNavigationProp>();
 
   const handleRegister = async () => {
     if (!nombre || !email || !password || !confirmPassword) {
@@ -28,7 +29,7 @@ const RegisterScreen = ({ onRegisterSuccess, onBackToLogin }: Props) => {
     try {
       await registerUser(nombre, email, password);
       Alert.alert('Éxito', 'Registro completado con éxito');
-      onRegisterSuccess();
+      navigation.navigate('Login');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo completar el registro');
     }
@@ -39,7 +40,7 @@ const RegisterScreen = ({ onRegisterSuccess, onBackToLogin }: Props) => {
       <Text style={styles.title}>Crear Cuenta</Text>
       
       <CustomInput 
-        placeholder="Nombre de usuario" 
+        placeholder="Nombre completo" 
         value={nombre} 
         onChangeText={setNombre}
       />
@@ -70,7 +71,10 @@ const RegisterScreen = ({ onRegisterSuccess, onBackToLogin }: Props) => {
         <Text style={styles.buttonText}>Registrarse</Text>
       </TouchableOpacity>
       
-      <TouchableOpacity onPress={onBackToLogin} style={styles.secondaryButton}>
+      <TouchableOpacity 
+        onPress={() => navigation.goBack()} 
+        style={styles.secondaryButton}
+      >
         <Text style={styles.secondaryButtonText}>¿Ya tienes cuenta? Inicia sesión</Text>
       </TouchableOpacity>
     </View>

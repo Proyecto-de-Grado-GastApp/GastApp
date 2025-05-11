@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import CustomInput from '../components/CustomInput';
 import { loginUser } from '../api/auth';
+import { useNavigation } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-type Props = {
-  onLoginSuccess: () => void;
-  onNavigateToRegister: () => void;
-};
+type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
-const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }: Props) => {
+const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigation = useNavigation<LoginScreenNavigationProp>();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -21,7 +22,7 @@ const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }: Props) => {
     try {
       const token = await loginUser(email, password);
       Alert.alert('Éxito', 'Inicio de sesión exitoso');
-      onLoginSuccess();
+      navigation.replace('MainApp');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo iniciar sesión');
     }
@@ -46,7 +47,10 @@ const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }: Props) => {
         <Text style={styles.buttonText}>Entrar</Text>
       </TouchableOpacity>
       
-      <TouchableOpacity onPress={onNavigateToRegister} style={styles.secondaryButton}>
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('Register')} 
+        style={styles.secondaryButton}
+      >
         <Text style={styles.secondaryButtonText}>¿No tienes cuenta? Regístrate</Text>
       </TouchableOpacity>
     </View>
