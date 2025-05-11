@@ -5,9 +5,10 @@ import { loginUser } from '../api/auth';
 
 type Props = {
   onLoginSuccess: () => void;
+  onNavigateToRegister: () => void;
 };
 
-const LoginScreen = ({ onLoginSuccess }: Props) => {
+const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -44,6 +45,10 @@ const LoginScreen = ({ onLoginSuccess }: Props) => {
       <TouchableOpacity onPress={handleLogin} style={styles.button}>
         <Text style={styles.buttonText}>Entrar</Text>
       </TouchableOpacity>
+      
+      <TouchableOpacity onPress={onNavigateToRegister} style={styles.secondaryButton}>
+        <Text style={styles.secondaryButtonText}>¿No tienes cuenta? Regístrate</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -68,11 +73,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 48,
     borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 16,
+  },
+  secondaryButtonText: {
+    color: '#2563eb',
+    fontSize: 16,
   },
 });
 

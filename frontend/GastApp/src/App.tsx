@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from 'react';
-
 import {
   StyleSheet,
   View,
@@ -20,15 +19,23 @@ import { Gastos } from './types';
 import { initialGastoState } from './types';
 
 import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen';
 
+type AppScreen = 'login' | 'register' | 'main';
 
 const App = () => {
+  const [currentScreen, setCurrentScreen] = useState<AppScreen>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Si el presupuesto es valido cambiamos la pantalla cambiando el valor de este useState
   const [isValidPresupuesto, setisValidPresupuesto] = useState(false)
-
   const [presupuesto, setpresupuesto] = useState(0)
+
+  // Gastos creados por el usuario en la aplicación
+  const [gastos, setGastos] = useState<Gastos[]>([]);
+
+  // Modal para añadir un gasto nuevo
+  const [modal, setModal] = useState(false);
 
   // Función para validar el presupuesto
   const handleNuevoPresupuesto = (presupuesto: number) => {
@@ -39,38 +46,20 @@ const App = () => {
     }
   }
 
-  // Gastos creados por el usuario en la aplicación
-  const [gastos, setGastos] = useState<Gastos[]>([]);
-
-
-  // Modal para añadir un gasto nuevo
-  const [modal, setModal] = useState(false);
-
   // Función para validar el formulario de nuevo gasto
   const evaluarGasto = (gasto: Gastos) => {
-    // Object.values crea un array con los valores introducidos en el objeto
     if ([gasto.nombre, gasto.cantidad, gasto.categoria].includes('')) {
         Alert.alert('Error', 'Todos los campos son obligatorios',[{text: 'Aceptar'}]) 
       return  
     } 
 
-    // Si el id del gasto está relleno significa que estamos editando un gasto que ya existe
     if (gasto.id) {
-      /* gastos.map recorre los gastos y compara el gasto introducido con el gasto ya existente,
-      si coincide devuelve el gasto actual, sino devuelve el gasto modificado */
-      const gastosActualizados = gastos.map(gastoState => gastoState.id === gasto.id ? gasto : gastoState  )
-
+      const gastosActualizados = gastos.map(gastoState => gastoState.id === gasto.id ? gasto : gastoState)
       setGastos(gastosActualizados);
-
     } else {
-      // Genereamos id y fecha de registro
       gasto.id = generarId();
       gasto.fecha = Date.now();
-
-      // Añadimos el nuevo gasto al state
       setGastos([...gastos,gasto]);
-      console.log(gasto);
-      
     }
     setModal(false);
   }
@@ -78,73 +67,93 @@ const App = () => {
   // Estado para abrir el formulario para modificar los gastos creados
   const [modificarGasto, setModificarGasto] = useState<Gastos>(initialGastoState);
 
-  // if (!isAuthenticated) {
-  //   return <LoginScreen onLoginSuccess={() => setIsAuthenticated(true)} />;
-  // }
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    setCurrentScreen('main');
+  }
 
-  return(
-    <View style={styles.contenedor}>
-      <ScrollView>
+  const handleRegisterSuccess = () => {
+    Alert.alert('Éxito', 'Registro completado. Por favor inicia sesión.');
+    setCurrentScreen('login');
+  }
 
-        <View style={styles.header}>
-          <Header/>
+  // Renderizar la pantalla actual basada en el estado
+  const renderScreen = () => {
+    switch(currentScreen) {
+      case 'login':
+        return (
+          <LoginScreen 
+            onLoginSuccess={handleLoginSuccess}
+            onNavigateToRegister={() => setCurrentScreen('register')}
+          />
+        );
+      case 'register':
+        return (
+          <RegisterScreen
+            onRegisterSuccess={handleRegisterSuccess}
+            onBackToLogin={() => setCurrentScreen('login')}
+          />
+        );
+      case 'main':
+        return renderMainApp();
+      default:
+        return renderMainApp();
+    }
+  }
 
-          {isValidPresupuesto ? <ControlPresupuesto
-            presupuesto = {presupuesto}
-            gastos = {gastos}
-          /> : (
-              <NuevoPresupuesto 
-                presupuesto = {presupuesto}
-                setpresupuesto={setpresupuesto}
-                handleNuevoPresupuesto={handleNuevoPresupuesto}
+  const renderMainApp = () => {
+    return (
+      <View style={styles.contenedor}>
+        <ScrollView>
+          <View style={styles.header}>
+            <Header/>
+
+            {isValidPresupuesto ? 
+              <ControlPresupuesto
+                presupuesto={presupuesto}
+                gastos={gastos}
+              /> : (
+                <NuevoPresupuesto 
+                  presupuesto={presupuesto}
+                  setpresupuesto={setpresupuesto}
+                  handleNuevoPresupuesto={handleNuevoPresupuesto}
+                />
+              )
+            }
+          </View>
+
+          {isValidPresupuesto && (
+            <ListadoGastos
+              gastos={gastos}
+              setModal={setModal}
+              setModificarGasto={setModificarGasto}
             />
-          ) }
+          )}
+        </ScrollView>
 
-          
-        </View>
-
-        {/* Mostramos los gastos creados */}
-        {isValidPresupuesto && (
-          <ListadoGastos
-            gastos = {gastos}
-            setModal={setModal}
+        <Modal visible={modal} animationType='slide'>
+          <FormularioGasto 
+            setModal={setModal} 
+            evaluarGasto={evaluarGasto}
             setModificarGasto={setModificarGasto}
+            modificarGasto={modificarGasto}
           />
+        </Modal>
+
+        {isValidPresupuesto && (
+          <Pressable onPress={() => setModal(true)}>
+            <Image
+              style={styles.imagen}
+              source={require('../assets/img/nuevo-gasto.png')}
+            />
+          </Pressable>
         )}
+      </View>
+    );
+  }
 
-    </ScrollView>
-
-
-      {/* Modal para mostrar el formulario de crear nuevo gasto */}
-      <Modal visible={modal} animationType='slide'>
-        <FormularioGasto 
-          setModal={setModal} 
-          evaluarGasto={evaluarGasto}
-          setModificarGasto={setModificarGasto}
-          modificarGasto={modificarGasto}
-
-
-        />
-      </Modal>
-
-      {/* Mostramos botón para añadir gastos una vez que el presupuesto introducido es válido */}
-      {/* Los && indican que si la condición es verdadera se ejecuta el código a continuación */}
-      {isValidPresupuesto && (
-        <Pressable onPress={() => setModal(true)}>
-          <Image
-            style={styles.imagen}
-            source={require('../assets/img/nuevo-gasto.png')}
-          />
-        </Pressable>
-      )}
-
-      
-
-    </View>
-    
-  )
+  return renderScreen();
 }
-
 
 const styles = StyleSheet.create({
   contenedor:{
