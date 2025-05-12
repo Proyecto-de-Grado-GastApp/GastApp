@@ -1,5 +1,5 @@
 // auth.ts
-const API_BASE_URL = 'https://4371-5-180-230-103.ngrok-free.app/api/usuarios';
+const API_BASE_URL = 'https://3a43-79-150-30-221.ngrok-free.app/api/usuarios';
 
 export const loginUser = async (email: string, password: string): Promise<string> => {
   try {

@@ -67,6 +67,25 @@ const App = () => {
   // Estado para abrir el formulario para modificar los gastos creados
   const [modificarGasto, setModificarGasto] = useState<Gastos>(initialGastoState);
 
+  // Función para evaluar si el usuario quiere eliminar un gasto o no
+  const eliminarGasto = (id: string) =>{
+    Alert.alert(
+      '¿Deseas eliminar este gasto?',
+      'Esta acción es irreversible',
+      [
+        { text: 'No', style: 'cancel'},
+        {text:'Sí, eliminar', onPress: () =>{
+          // Esta función devuelve una array con todos los gastos menos el que tiene el id que hemos introducido en la función
+          const gastosActualizados = gastos.filter( gastoState => gastoState.id !== id)
+          setGastos(gastosActualizados);
+          setModal(false);
+          setModificarGasto(initialGastoState);
+          
+        }}
+      ]
+    )
+  }
+
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setCurrentScreen('main');
@@ -137,6 +156,7 @@ const App = () => {
             evaluarGasto={evaluarGasto}
             setModificarGasto={setModificarGasto}
             modificarGasto={modificarGasto}
+            eliminarGasto={eliminarGasto}
           />
         </Modal>
 
