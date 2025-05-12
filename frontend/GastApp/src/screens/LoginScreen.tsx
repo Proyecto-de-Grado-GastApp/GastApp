@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import CustomInput from '../components/CustomInput';
 import { loginUser } from '../api/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -11,6 +12,7 @@ type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { login } = useAuth();
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
   const handleLogin = async () => {
@@ -21,8 +23,8 @@ const LoginScreen = () => {
 
     try {
       const token = await loginUser(email, password);
+      await login(token);
       Alert.alert('Éxito', 'Inicio de sesión exitoso');
-      navigation.replace('MainApp');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo iniciar sesión');
     }

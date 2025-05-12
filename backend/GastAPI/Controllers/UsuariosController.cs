@@ -4,6 +4,7 @@ using GastAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -74,6 +75,41 @@ namespace GastAPI.Controllers
             return Ok(new { token });
         }
 
+        // Endpoint para validar el token manualmente
+        // !Agrega el atributo [Authorize] para requerir autenticación
+        [HttpGet("validate-token")]
+        public IActionResult ValidateToken()
+        {
+            // Obtén el token manualmente del header
+            var authHeader = Request.Headers["Authorization"].ToString();
+            
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized(new { valid = false, message = "Token no proporcionado" });
+            }
+
+            var token = authHeader.Substring("Bearer ".Length).Trim();
+
+            // Valida manualmente el token (versión simplificada)
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jwtToken = handler.ReadJwtToken(token);
+                
+                // Verifica expiración básica (sin firma para desarrollo)
+                if (jwtToken.ValidTo < DateTime.UtcNow)
+                {
+                    return Unauthorized(new { valid = false, message = "Token expirado" });
+                }
+
+                return Ok(new { valid = true, userId = jwtToken.Subject });
+            }
+            catch
+            {
+                return Unauthorized(new { valid = false, message = "Token inválido" });
+            }
+        }
+        
         private string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();
