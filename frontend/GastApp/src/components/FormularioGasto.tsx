@@ -54,7 +54,7 @@ const FormularioGasto = ({setModal, evaluarGasto, modificarGasto, setModificarGa
         <View style={styles.contenedorBotones}>
             <Pressable 
                 style={[styles.btn ,styles.btnCancelar]}
-                onLongPress={() => {
+                onPress={() => {
                     setModal(false)
                     setModificarGasto(initialGastoState)
                 }}
@@ -64,7 +64,7 @@ const FormularioGasto = ({setModal, evaluarGasto, modificarGasto, setModificarGa
 
             <Pressable 
                 style={[styles.btn ,styles.btnEliminar]}
-                onLongPress={() => eliminarGasto(id)}
+                onPress={() => eliminarGasto(id)}
             >
                 <Text style={styles.btnTexto}>Eliminar</Text>
             </Pressable>

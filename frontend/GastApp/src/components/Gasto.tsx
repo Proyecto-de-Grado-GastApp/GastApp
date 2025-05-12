@@ -35,7 +35,7 @@ const Gasto = ({gasto, setModal,setModificarGasto}: Gasto) => {
 
   return (
     <Pressable
-      onLongPress={handleAcciones}
+      onPress={handleAcciones}
     >
       <View style={styles.contenedor}>
 

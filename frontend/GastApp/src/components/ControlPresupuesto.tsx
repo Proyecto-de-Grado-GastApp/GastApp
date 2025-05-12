@@ -1,5 +1,6 @@
 import React, {useState,useEffect} from 'react'
 import { Text, View, Image, StyleSheet } from "react-native";
+import CircularProgress from "react-native-circular-progress-indicator";
 
 import globalStyles from '../../assets/styles/index';
 import { formatearCantidad } from '../helpers';
@@ -34,9 +35,9 @@ const ControlPresupuesto = ({presupuesto, gastos}:Presupuestos,) => {
   return (
     <View style={styles.contenedor}>
         <View style={styles.centrarGrafica}>
-            <Image 
-                style={styles.imagen}
-                source={ require('../../assets/img/grafico.jpg')}/>
+            <CircularProgress
+                value={50}
+            />
         </View>
 
         <View style={styles.contenedorTexto}>
