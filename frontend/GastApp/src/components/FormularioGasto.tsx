@@ -15,9 +15,10 @@ interface Recibido {
     evaluarGasto: (gasto: Gastos) => void;
     modificarGasto: Gastos; // Objeto de tipo Gastos o vacío
     setModificarGasto: React.Dispatch<React.SetStateAction<Gastos>>;
+    eliminarGasto : Function
 }
 
-const FormularioGasto = ({setModal, evaluarGasto, modificarGasto, setModificarGasto}:Recibido) => {
+const FormularioGasto = ({setModal, evaluarGasto, modificarGasto, setModificarGasto, eliminarGasto}:Recibido) => {
 
     // Nombre del gasto
     const [nombre, setNombre] = useState(initialGastoState.nombre);
@@ -50,15 +51,25 @@ const FormularioGasto = ({setModal, evaluarGasto, modificarGasto, setModificarGa
 
   return (
     <SafeAreaView style={styles.contenedor}>
-        <Pressable 
-            style={styles.closeBtn}
-            onLongPress={() => {
-                setModal(false)
-                setModificarGasto(initialGastoState)
-            }}
-        >
-            <Text style={styles.closeBtnText}>Cancelar</Text>
-        </Pressable>
+        <View style={styles.contenedorBotones}>
+            <Pressable 
+                style={[styles.btn ,styles.btnCancelar]}
+                onLongPress={() => {
+                    setModal(false)
+                    setModificarGasto(initialGastoState)
+                }}
+            >
+                <Text style={styles.btnTexto}>Cancelar</Text>
+            </Pressable>
+
+            <Pressable 
+                style={[styles.btn ,styles.btnEliminar]}
+                onLongPress={() => eliminarGasto(id)}
+            >
+                <Text style={styles.btnTexto}>Eliminar</Text>
+            </Pressable>
+        </View>
+        
 
         <View style={styles.formulario}>
             <View>
@@ -120,13 +131,23 @@ const styles = StyleSheet.create({
         backgroundColor: "#1e40af",
         flex: 1
     },
-    closeBtn:{
-        backgroundColor: "#db2777",
+    contenedorBotones: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    btn: {
         padding: 10,
         marginTop: 30,
         marginHorizontal: 10,
+        flex: 1
     },
-    closeBtnText:{
+    btnCancelar:{
+        backgroundColor: "#db2777",
+    },
+    btnEliminar:{
+        backgroundColor: 'red'
+    },
+    btnTexto:{
         textTransform: 'uppercase',
         color: "white",
         fontWeight: 'bold',

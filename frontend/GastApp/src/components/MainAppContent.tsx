@@ -19,36 +19,64 @@ import { Gastos } from '../types';
 import { initialGastoState } from '../types';
 
 const MainAppContent = () => {
-  const [isValidPresupuesto, setisValidPresupuesto] = useState(false);
-  const [presupuesto, setpresupuesto] = useState(0);
+  // Si el presupuesto es valido cambiamos la pantalla cambiando el valor de este useState
+  const [isValidPresupuesto, setisValidPresupuesto] = useState(false)
+  const [presupuesto, setpresupuesto] = useState(0)
+
+  // Gastos creados por el usuario en la aplicación
   const [gastos, setGastos] = useState<Gastos[]>([]);
+
+  // Modal para añadir un gasto nuevo
   const [modal, setModal] = useState(false);
+
+  // Estado para abrir el formulario para modificar los gastos creados
   const [modificarGasto, setModificarGasto] = useState<Gastos>(initialGastoState);
 
+  // Función para validar el presupuesto
   const handleNuevoPresupuesto = (presupuesto: number) => {
     if (presupuesto > 0) {
-      setisValidPresupuesto(true);
+      setisValidPresupuesto(true)
     } else {
-      Alert.alert('Error', 'El presupuesto debe ser mayor que 0', [{text: 'Aceptar'}]);
+      Alert.alert('Error', 'El presupuesto debe ser mayor que 0', [{text: 'Aceptar'}])
     }
-  };
+  }
 
+  // Función para validar el formulario de nuevo gasto
   const evaluarGasto = (gasto: Gastos) => {
     if ([gasto.nombre, gasto.cantidad, gasto.categoria].includes('')) {
-        Alert.alert('Error', 'Todos los campos son obligatorios',[{text: 'Aceptar'}]);
-      return;
-    }
+        Alert.alert('Error', 'Todos los campos son obligatorios',[{text: 'Aceptar'}]) 
+      return  
+    } 
 
     if (gasto.id) {
-      const gastosActualizados = gastos.map(gastoState => gastoState.id === gasto.id ? gasto : gastoState);
+      const gastosActualizados = gastos.map(gastoState => gastoState.id === gasto.id ? gasto : gastoState)
       setGastos(gastosActualizados);
     } else {
       gasto.id = generarId();
       gasto.fecha = Date.now();
-      setGastos([...gastos, gasto]);
+      setGastos([...gastos,gasto]);
     }
     setModal(false);
-  };
+  }
+
+  // Función para evaluar si el usuario quiere eliminar un gasto o no
+  const eliminarGasto = (id: string) =>{
+    Alert.alert(
+      '¿Deseas eliminar este gasto?',
+      'Esta acción es irreversible',
+      [
+        { text: 'No', style: 'cancel'},
+        {text:'Sí, eliminar', onPress: () =>{
+          // Esta función devuelve una array con todos los gastos menos el que tiene el id que hemos introducido en la función
+          const gastosActualizados = gastos.filter( gastoState => gastoState.id !== id)
+          setGastos(gastosActualizados);
+          setModal(false);
+          setModificarGasto(initialGastoState);
+          
+        }}
+      ]
+    )
+  }
 
   return (
     <View style={styles.contenedor}>
@@ -84,6 +112,7 @@ const MainAppContent = () => {
           evaluarGasto={evaluarGasto}
           setModificarGasto={setModificarGasto}
           modificarGasto={modificarGasto}
+          eliminarGasto={eliminarGasto}
         />
       </Modal>
 
