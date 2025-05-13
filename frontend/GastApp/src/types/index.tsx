@@ -11,7 +11,7 @@ export type Categoria =
 export interface Gastos {
   nombre: string;
   cantidad: number;
-categoria: Categoria;
+  categoria: Categoria;
   id?: string;
   fecha?: number;
 };

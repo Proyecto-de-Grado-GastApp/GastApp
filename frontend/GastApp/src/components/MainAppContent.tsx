@@ -14,6 +14,7 @@ import NuevoPresupuesto from './NuevoPresupuesto';
 import ControlPresupuesto from './ControlPresupuesto';
 import FormularioGasto from './FormularioGasto';
 import ListadoGastos from './ListadoGastos';
+import Filtro from './Filtro';
 import { generarId } from '../helpers/index';
 import { Gastos } from '../types';
 import { initialGastoState } from '../types';
@@ -31,6 +32,10 @@ const MainAppContent = () => {
 
   // Estado para abrir el formulario para modificar los gastos creados
   const [modificarGasto, setModificarGasto] = useState<Gastos>(initialGastoState);
+
+  const [filtro, setFiltro] = useState('');
+
+  const [gastosFiltrados, setGastosFiltrados] = useState<Gastos[]>([]);
 
   // Función para validar el presupuesto
   const handleNuevoPresupuesto = (presupuesto: number) => {
@@ -98,11 +103,22 @@ const MainAppContent = () => {
         </View>
 
         {isValidPresupuesto && (
-          <ListadoGastos
-            gastos={gastos}
-            setModal={setModal}
-            setModificarGasto={setModificarGasto}
-          />
+          <>
+            <Filtro
+              gastos={gastos}
+              filtro={filtro}
+              setFiltro={setFiltro}
+              setGastosFiltrados={setGastosFiltrados}
+            />
+          
+            <ListadoGastos
+              gastos={gastos}
+              setModal={setModal}
+              setModificarGasto={setModificarGasto}
+              filtro={filtro}
+              gastosFiltrados={gastosFiltrados}
+            />
+          </>
         )}
       </ScrollView>
 

@@ -8,26 +8,31 @@ interface GastosGuardados {
     gastos :Gastos[],
     setModal : (modal:boolean) => void;
     setModificarGasto: React.Dispatch<React.SetStateAction<Gastos>>;
+    filtro: string;
+    gastosFiltrados: Gastos[]
 }
 
 
-const ListadoGastos = ({gastos, setModal, setModificarGasto}: GastosGuardados) => {
+const ListadoGastos = ({gastos, setModal, setModificarGasto,filtro,gastosFiltrados}: GastosGuardados) => {
   return (
     <View style={styles.contenedor}>
         <Text style={styles.titulo}>Gastos</Text>
 
-        {gastos.length === 0 ? 
-        <Text style={styles.noGastos}>No hay gastos guardados</Text> : 
-        // Si hay gastos guardados recorremos los gastos
-        gastos.map(gasto => (<Gasto key={gasto.id || gasto.nombre} gasto={gasto} setModal={setModal} setModificarGasto={setModificarGasto} />))
-}
+        {/* Si se ha establecido un filtro, iteramos sobre los gastosFiltrados, si no mostramos todos los gastos */}
+        { filtro ? gastosFiltrados.map(gasto => (<Gasto key={gasto.id || gasto.nombre} gasto={gasto} setModal={setModal} setModificarGasto={setModificarGasto} />)) : gastos.map(gasto => (<Gasto key={gasto.id || gasto.nombre} gasto={gasto} setModal={setModal} setModificarGasto={setModificarGasto} />)) }
+
+        {/* Si la categoría del filtro no tiene gastos asociados */}
+        { (gastos.length === 0 || (gastosFiltrados.length === 0 && !!filtro)) && (
+            <Text style={styles.noGastos}>No hay gastos</Text>
+        ) }
+
     </View>
   )
 }
 
 const styles = StyleSheet.create({
     contenedor: {
-        marginTop: 70,
+        marginTop: 30,
         marginBottom: 100
     },
     titulo:{

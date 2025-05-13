@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react'
 import { Text, SafeAreaView, View, TextInput, StyleSheet, Pressable } from 'react-native'
 import { Picker } from "@react-native-picker/picker";
 
-import globalStyles from '../../assets/styles/index';
+import globalStyles from '../styles/index';
 import { Gastos } from '../types';
 import { Categoria } from '../types';
 import { initialGastoState } from '../types';
@@ -61,13 +61,18 @@ const FormularioGasto = ({setModal, evaluarGasto, modificarGasto, setModificarGa
             >
                 <Text style={styles.btnTexto}>Cancelar</Text>
             </Pressable>
+                {/* Condicional para que el botón de eliminar no se muestre al crear un gasto */}
 
-            <Pressable 
-                style={[styles.btn ,styles.btnEliminar]}
-                onPress={() => eliminarGasto(id)}
-            >
-                <Text style={styles.btnTexto}>Eliminar</Text>
-            </Pressable>
+                { id && (
+                    <Pressable 
+                        style={[styles.btn ,styles.btnEliminar]}
+                        onPress={() => eliminarGasto(id)}
+                    >
+                        <Text style={styles.btnTexto}>Eliminar</Text>
+                    </Pressable>
+                )}
+
+            
         </View>
         
 
@@ -142,10 +147,10 @@ const styles = StyleSheet.create({
         flex: 1
     },
     btnCancelar:{
-        backgroundColor: "#db2777",
+        backgroundColor: "red",
     },
     btnEliminar:{
-        backgroundColor: 'red'
+        backgroundColor: 'darkred'
     },
     btnTexto:{
         textTransform: 'uppercase',

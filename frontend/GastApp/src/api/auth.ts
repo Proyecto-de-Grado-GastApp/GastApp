@@ -1,6 +1,6 @@
 import client from './client'; // Asumiendo que has creado este archivo como se sugirió anteriormente
 
-const API_BASE_URL = 'https://2250-5-180-230-103.ngrok-free.app/api/usuarios';
+const API_BASE_URL = 'https://781f-79-150-30-221.ngrok-free.app/api/usuarios';
 
 export const loginUser = async (email: string, password: string): Promise<string> => {
   try {
