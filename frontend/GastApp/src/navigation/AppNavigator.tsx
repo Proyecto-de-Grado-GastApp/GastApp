@@ -11,20 +11,31 @@ import LoadingScreen from '../components/LoadingScreen';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MainAppContent from '../components/MainAppContent';
 
+import EditProfileScreen from '../screens/EditProfileScreen';
+import AboutAppScreen from '../screens/AboutAppScreen'; 
+import SettingsScreen from '../screens/SettingsScreen';
+
 // Tipos para las rutas
+// Stack para los grupos de pantallas
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
-  MainApp: undefined;
-};
-
-export type BottomTabParamList = {
-  Home: undefined;
-  Profile: undefined;
-  MainApp: undefined;
+  Principal: undefined;
+  
+  Settings: undefined;
+  AboutApp: undefined;
+  EditProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Bottom Tabs para las pantallas principales que se muestran al iniciar sesión y en la barra de navegación
+export type BottomTabParamList = {
+  Home: undefined;
+  Perfil: undefined;
+  Principal: undefined;
+};
+
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 // Componente de Bottom Tabs
@@ -36,13 +47,12 @@ const MainTabs = () => {
           let iconName;
 
           if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Profile') {
+            iconName = focused ? 'newspaper' : 'newspaper-outline';
+          } else if (route.name === 'Perfil') {
             iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'MainApp') {
+          } else if (route.name === 'Principal') {
             iconName = focused ? 'home' : 'home-outline';
           }
-          
 
           return <Icon name={iconName} size={size} color={color} />;
         },
@@ -58,9 +68,9 @@ const MainTabs = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="MainApp" component={MainAppContent} />
+      <Tab.Screen name="Principal" component={MainAppContent} />
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
 };
@@ -79,8 +89,16 @@ const AppNavigator = () => {
           headerShown: false
         }}
       >
+        {/* // Si hay token, muestra las tabs principales
+        // Si no hay token, muestra las pantallas de Login y Registro */}
         {token ? (
-          <Stack.Screen name="MainApp" component={MainTabs} />
+          <>
+            <Stack.Screen name="Principal" component={MainTabs} />
+  
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="AboutApp" component={AboutAppScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />

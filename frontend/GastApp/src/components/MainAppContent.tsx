@@ -131,24 +131,44 @@ const MainAppContent = () => {
 };
 
 const styles = StyleSheet.create({
-  contenedor:{
-    backgroundColor: "#F5F5F5",
-    flex:1
+  contenedor: {
+    flex: 1,
+    backgroundColor: "#f3f4f6", // gris claro y suave
   },
   header: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: "#3b82f6", // azul vivo
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 4, // sombra en Android
+    shadowColor: "#000", // sombra en iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
-  imagen:{
+  imagen: {
     width: 60,
     height: 60,
+    resizeMode: "contain",
   },
   pressable: {
+    position: "absolute",
+    bottom: 30,
+    right: 25,
     width: 60,
     height: 60,
-    position: 'absolute',
-    bottom: 40,
-    right: 30
-  }
+    borderRadius: 30,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
 });
 
 export default MainAppContent;

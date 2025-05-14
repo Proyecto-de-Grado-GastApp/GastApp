@@ -7,12 +7,12 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { StackNavigationProp } from '@react-navigation/stack';
 import LoadingScreen from '../components/LoadingScreen';
 
-type MainAppScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainApp'>;
+type MainAppScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Principal'>;
 
 const MainAppScreen = () => {
   const { token, isLoading, checkToken } = useAuth();
   const navigation = useNavigation<MainAppScreenNavigationProp>();
-
+  
   useEffect(() => {
     const verifySession = async () => {
       // Solo verifica si no está cargando y no hay token

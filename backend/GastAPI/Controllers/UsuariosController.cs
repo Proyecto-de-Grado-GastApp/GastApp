@@ -76,7 +76,7 @@ namespace GastAPI.Controllers
         }
 
         // Endpoint para validar el token manualmente
-        // !Agrega el atributo [Authorize] para requerir autenticación
+        [Authorize]
         [HttpGet("validate-token")]
         public IActionResult ValidateToken()
         {
@@ -109,6 +109,33 @@ namespace GastAPI.Controllers
                 return Unauthorized(new { valid = false, message = "Token inválido" });
             }
         }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<ActionResult> GetMe()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "Token inválido o sin identificador." });
+            }
+
+            var usuario = await _context.Usuarios.FindAsync(long.Parse(userId));
+            if (usuario == null)
+            {
+                return NotFound(new { message = "Usuario no encontrado." });
+            }
+
+            return Ok(new
+            {
+                usuario.Id,
+                usuario.Nombre,
+                usuario.Email,
+                usuario.FechaCreacion
+            });
+        }
+
         
         private string HashPassword(string password)
         {

@@ -1,8 +1,44 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+import { useAuth } from '../contexts/AuthContext'
+import axios from 'axios';
+import { useState } from 'react';
+
 const ProfileScreen = ({ navigation }: any) => {
+
+  const { logout } = useAuth();
+  
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  // Token de autenticacion y hook para obtener datos del usuario
+  const { token } = useAuth();
+  const [userData, setUserData] = useState<any>(null);
+
+   useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await axios.get('https://5f2b-5-180-230-103.ngrok-free.app/api/usuarios/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setUserData(res.data);
+      } catch (error) {
+        console.error('Error obteniendo datos del usuario:', error);
+      }
+    };
+
+    if (token) fetchUserData();
+  }, [token]);
+
+  if (!userData) {
+    return <Text>Cargando datos del usuario...</Text>;
+  }
+
   return (
     <View style={styles.container}>
       {/* Header con foto */}
@@ -11,23 +47,39 @@ const ProfileScreen = ({ navigation }: any) => {
           source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
           style={styles.profileImage}
         />
-        <Text style={styles.name}>Usuario Ejemplo</Text>
-        <Text style={styles.email}>usuario@ejemplo.com</Text>
+        <Text style={styles.name}>{userData.nombre}</Text>
+        <Text style={styles.email}>{userData.email}</Text>
       </View>
 
       {/* Opciones de perfil */}
       <View style={styles.optionsContainer}>
         {[
-          { icon: 'person', text: 'Editar Perfil' },
-          { icon: 'settings', text: 'Configuración' },
-          { icon: 'log-out', text: 'Cerrar Sesión' },
+          { 
+            icon: 'person', 
+            text: 'Editar Perfil',
+            onPress: () => navigation.navigate('EditProfile')
+          },
+          { 
+            icon: 'settings', 
+            text: 'Configuración',
+            onPress: () => navigation.navigate('Settings')
+          },
+          {
+            icon: 'information-circle', 
+            text: 'Acerca de la App',
+            onPress: () => navigation.navigate('AboutApp')
+          }
         ].map((item, index) => (
-          <TouchableOpacity key={index} style={styles.option}>
+          <TouchableOpacity key={index} style={styles.option} onPress={item.onPress}>
             <Icon name={item.icon} size={24} color="#666" />
             <Text style={styles.optionText}>{item.text}</Text>
             <Icon name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
         ))}
+        <TouchableOpacity style={styles.option} onPress={handleLogout}>
+          <Icon name='log-out' size={24} color="#666" />
+          <Text style={styles.optionText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

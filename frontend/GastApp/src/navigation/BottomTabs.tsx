@@ -3,8 +3,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import { Dimensions } from 'react-native';
 
 const Tab = createBottomTabNavigator();
+const { height } = Dimensions.get('window');
 
 const BottomTabs = () => {
   return (
@@ -24,13 +26,14 @@ const BottomTabs = () => {
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
-          backgroundColor: 'white',
+          height: height * 0.08, // 8% del alto de la pantalla
+          paddingBottom: height > 800 ? 10 : 5, // Ajusta según necesidad
           borderTopWidth: 0,
-          elevation: 8,
-          height: 60,
-          paddingBottom: 5,
+          elevation: 0,
+          shadowOpacity: 0,
+          backgroundColor: '#fff',
         },
-        headerShown: false,
+          headerShown: false,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
