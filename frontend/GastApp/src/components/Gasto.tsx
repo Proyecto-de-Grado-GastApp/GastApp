@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { Gastos } from '../types';
-import globalStyles from '../../assets/styles/index';
+import globalStyles from '../styles/index';
 import { formatearCantidad, formatearFecha } from "../helpers";
 
 
