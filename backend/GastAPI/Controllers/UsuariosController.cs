@@ -136,7 +136,75 @@ namespace GastAPI.Controllers
             });
         }
 
-        
+        [HttpGet("perfil")]
+        [Authorize]
+        public async Task<IActionResult> GetPerfil()
+        {
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+
+            if (identity == null)
+                return Unauthorized();
+
+            var userIdClaim = identity.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            var userId = long.Parse(userIdClaim.Value);
+
+            var usuario = await _context.Usuarios
+                .Where(u => u.Id == userId)
+                .Select(u => new {
+                    u.Id,
+                    u.Nombre,
+                    u.Email
+                })
+                .FirstOrDefaultAsync();
+
+            if (usuario == null)
+                return NotFound();
+
+            return Ok(usuario);
+        }
+
+        [HttpPut("actualizar-perfil")]
+        [Authorize]
+        public async Task<IActionResult> ActualizarPerfil([FromBody] UsuarioUpdateDto dto)
+        {
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+
+            var userId = long.Parse(userIdClaim.Value);
+            var usuario = await _context.Usuarios.FindAsync(userId);
+
+            if (usuario == null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(dto.Nombre))
+                usuario.Nombre = dto.Nombre;
+
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+            {
+                // Verifica que el nuevo email no esté en uso por otro usuario
+                var emailEnUso = await _context.Usuarios.AnyAsync(u => u.Email == dto.Email && u.Id != userId);
+                if (emailEnUso)
+                {
+                    return BadRequest(new { message = "El correo ya está en uso por otro usuario." });
+                }
+
+                usuario.Email = dto.Email;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Contrasena))
+            {
+                usuario.Contrasena = HashPassword(dto.Contrasena);
+            }
+
+            _context.Usuarios.Update(usuario);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Perfil actualizado correctamente." });
+        }
+
         private string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();

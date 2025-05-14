@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
+import { API_BASE_URL } from '../api/urlConnection'; 
+
 interface AuthContextType {
   token: string | null;
   isLoading: boolean;
@@ -76,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!storedToken) return false;
 
     try {
-      const response = await axios.get('https://5f2b-5-180-230-103.ngrok-free.app/api/usuarios/validate-token', {
+      const response = await axios.get(`${API_BASE_URL}/api/usuarios/validate-token`, {
         headers: {
           'Authorization': `Bearer ${storedToken}`
         }

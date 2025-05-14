@@ -9,9 +9,10 @@ namespace GastAPI.Dtos.Usuario
 
         [EmailAddress]
         [StringLength(255)]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }  // Hacerlo opcional
 
         [StringLength(255, MinimumLength = 6)]
-        public string Contrasena { get; set; } = string.Empty;
+        public string? Contrasena { get; set; }  // Hacerlo opcional
     }
+
 }

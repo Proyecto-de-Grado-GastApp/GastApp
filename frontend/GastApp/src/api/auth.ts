@@ -1,10 +1,10 @@
 import client from './client'; // Asumiendo que has creado este archivo como se sugirió anteriormente
 
-const API_BASE_URL = 'https://5f2b-5-180-230-103.ngrok-free.app/api/usuarios';
+import { API_BASE_URL } from '../api/urlConnection';
 
 export const loginUser = async (email: string, password: string): Promise<string> => {
   try {
-    const response = await client.post(`${API_BASE_URL}/login`, {
+    const response = await client.post(`${API_BASE_URL}/api/usuarios/login`, {
       Email: email,
       Contrasena: password,
     });
@@ -33,7 +33,7 @@ export const loginUser = async (email: string, password: string): Promise<string
 
 export const registerUser = async (nombre: string, email: string, password: string): Promise<boolean> => {
   try {
-    const response = await client.post(`${API_BASE_URL}/registrar`, {
+    const response = await client.post(`${API_BASE_URL}/api/usuarios/registrar`, {
       Nombre: nombre,
       Email: email,
       Contrasena: password,
@@ -55,7 +55,7 @@ export const registerUser = async (nombre: string, email: string, password: stri
 
 export const validateToken = async (token: string): Promise<boolean> => {
   try {
-    const response = await client.get(`${API_BASE_URL}/validate-token`, {
+    const response = await client.get(`${API_BASE_URL}/api/usuarios/validate-token`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

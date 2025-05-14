@@ -6,6 +6,9 @@ import { useAuth } from '../contexts/AuthContext'
 import axios from 'axios';
 import { useState } from 'react';
 
+import { API_BASE_URL } from '../api/urlConnection'; 
+import LoadingScreen from '../components/LoadingScreen';
+
 const ProfileScreen = ({ navigation }: any) => {
 
   const { logout } = useAuth();
@@ -21,7 +24,7 @@ const ProfileScreen = ({ navigation }: any) => {
    useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const res = await axios.get('https://5f2b-5-180-230-103.ngrok-free.app/api/usuarios/me', {
+        const res = await axios.get(`${API_BASE_URL}/api/usuarios/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -36,7 +39,7 @@ const ProfileScreen = ({ navigation }: any) => {
   }, [token]);
 
   if (!userData) {
-    return <Text>Cargando datos del usuario...</Text>;
+    return <LoadingScreen />;
   }
 
   return (
