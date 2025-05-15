@@ -14,6 +14,8 @@ import MainAppContent from '../components/MainAppContent';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import AboutAppScreen from '../screens/AboutAppScreen'; 
 import SettingsScreen from '../screens/SettingsScreen';
+import GastosScreen from '../screens/GastosScreen';
+import AgregarGastoScreen from '../screens/AgregarGastoScreen';
 
 // Tipos para las rutas
 // Stack para los grupos de pantallas
@@ -25,15 +27,18 @@ export type RootStackParamList = {
   Settings: undefined;
   AboutApp: undefined;
   EditProfile: undefined;
+  AgregarGastoScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // Bottom Tabs para las pantallas principales que se muestran al iniciar sesión y en la barra de navegación
 export type BottomTabParamList = {
-  Home: undefined;
-  Perfil: undefined;
   Principal: undefined;
+  Inicio: undefined;
+  Gastos: undefined;
+  Presupuestos: undefined;
+  Perfil: undefined;
 };
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -46,12 +51,16 @@ const MainTabs = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === 'Home') {
+          if (route.name === 'Inicio') {
             iconName = focused ? 'newspaper' : 'newspaper-outline';
           } else if (route.name === 'Perfil') {
             iconName = focused ? 'person' : 'person-outline';
           } else if (route.name === 'Principal') {
             iconName = focused ? 'home' : 'home-outline';
+          }  else if (route.name === 'Gastos') {
+            iconName = focused ? 'cash' : 'cash-outline';
+          } else if (route.name === 'Presupuestos') {
+            iconName = focused ? 'pie-chart' : 'pie-chart-outline';
           }
 
           return <Icon name={iconName} size={size} color={color} />;
@@ -62,14 +71,16 @@ const MainTabs = () => {
           backgroundColor: 'white',
           borderTopWidth: 0,
           elevation: 8,
-          height: 60,
+          height: 55,
           paddingBottom: 5,
         },
         headerShown: false,
       })}
     >
       <Tab.Screen name="Principal" component={MainAppContent} />
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Inicio" component={HomeScreen} />
+      <Tab.Screen name="Gastos" component={GastosScreen} />
+      <Tab.Screen name="Presupuestos" component={HomeScreen} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -98,6 +109,7 @@ const AppNavigator = () => {
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="AboutApp" component={AboutAppScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="AgregarGastoScreen" component={AgregarGastoScreen} />
           </>
         ) : (
           <>

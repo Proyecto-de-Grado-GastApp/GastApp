@@ -13,6 +13,8 @@ namespace GastAPI.Dtos.Usuario
 
         [StringLength(255, MinimumLength = 6)]
         public string? Contrasena { get; set; }  // Hacerlo opcional
-    }
 
+        public string? ImagenPerfil { get; set; }
+
+    }
 }

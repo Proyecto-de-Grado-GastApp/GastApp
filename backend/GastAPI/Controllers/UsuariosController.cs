@@ -132,7 +132,8 @@ namespace GastAPI.Controllers
                 usuario.Id,
                 usuario.Nombre,
                 usuario.Email,
-                usuario.FechaCreacion
+                usuario.FechaCreacion,
+                usuario.ImagenPerfil
             });
         }
 
@@ -156,7 +157,8 @@ namespace GastAPI.Controllers
                 .Select(u => new {
                     u.Id,
                     u.Nombre,
-                    u.Email
+                    u.Email,
+                    u.ImagenPerfil
                 })
                 .FirstOrDefaultAsync();
 
@@ -174,9 +176,10 @@ namespace GastAPI.Controllers
             var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null) return Unauthorized();
 
-            var userId = long.Parse(userIdClaim.Value);
-            var usuario = await _context.Usuarios.FindAsync(userId);
+            if (!long.TryParse(userIdClaim.Value, out var userId))
+                return Unauthorized();
 
+            var usuario = await _context.Usuarios.FindAsync(userId);
             if (usuario == null) return NotFound();
 
             if (!string.IsNullOrWhiteSpace(dto.Nombre))
@@ -184,26 +187,27 @@ namespace GastAPI.Controllers
 
             if (!string.IsNullOrWhiteSpace(dto.Email))
             {
-                // Verifica que el nuevo email no esté en uso por otro usuario
-                var emailEnUso = await _context.Usuarios.AnyAsync(u => u.Email == dto.Email && u.Id != userId);
+                var emailEnUso = await _context.Usuarios
+                    .AnyAsync(u => u.Email == dto.Email && u.Id != userId);
+
                 if (emailEnUso)
-                {
                     return BadRequest(new { message = "El correo ya está en uso por otro usuario." });
-                }
 
                 usuario.Email = dto.Email;
             }
 
             if (!string.IsNullOrWhiteSpace(dto.Contrasena))
-            {
                 usuario.Contrasena = HashPassword(dto.Contrasena);
-            }
+
+            if (!string.IsNullOrWhiteSpace(dto.ImagenPerfil))
+                usuario.ImagenPerfil = dto.ImagenPerfil;
 
             _context.Usuarios.Update(usuario);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Perfil actualizado correctamente." });
         }
+
 
         private string HashPassword(string password)
         {

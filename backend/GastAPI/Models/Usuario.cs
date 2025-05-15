@@ -27,6 +27,9 @@ namespace GastAPI.Models
         [MaxLength(255)]
         public required string Contrasena { get; set; }
 
+        // Imagen personalizada del usuario
+        public string ImagenPerfil { get; set; } = "https://randomuser.me/api/portraits/lego/1.jpg";
+
         //Auditoría
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
         public DateTime FechaActualizacion { get; set; } = DateTime.UtcNow;

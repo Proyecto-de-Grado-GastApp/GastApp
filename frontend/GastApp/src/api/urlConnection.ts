@@ -1,2 +1,2 @@
 // Modificar cada que se reinicie el ngrok
-export const API_BASE_URL = 'https://5f2b-5-180-230-103.ngrok-free.app';
+export const API_BASE_URL = 'https://1605-5-180-230-103.ngrok-free.app';
