@@ -16,6 +16,9 @@ import AboutAppScreen from '../screens/AboutAppScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import GastosScreen from '../screens/GastosScreen';
 import AgregarGastoScreen from '../screens/AgregarGastoScreen';
+import SubscriptionsScreen from '../screens/SubscriptionsScreen';
+
+import { GastosProvider } from '../contexts/GastosContext';
 
 // Tipos para las rutas
 // Stack para los grupos de pantallas
@@ -23,11 +26,12 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Principal: undefined;
-  
+  Subscriptions: undefined;
   Settings: undefined;
   AboutApp: undefined;
   EditProfile: undefined;
   AgregarGastoScreen: undefined;
+
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,6 +43,7 @@ export type BottomTabParamList = {
   Gastos: undefined;
   Presupuestos: undefined;
   Perfil: undefined;
+  Subscriptions: undefined;
 };
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -46,43 +51,49 @@ const Tab = createBottomTabNavigator<BottomTabParamList>();
 // Componente de Bottom Tabs
 const MainTabs = () => {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
+    <GastosProvider>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName;
 
-          if (route.name === 'Inicio') {
-            iconName = focused ? 'newspaper' : 'newspaper-outline';
-          } else if (route.name === 'Perfil') {
-            iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'Principal') {
-            iconName = focused ? 'home' : 'home-outline';
-          }  else if (route.name === 'Gastos') {
-            iconName = focused ? 'cash' : 'cash-outline';
-          } else if (route.name === 'Presupuestos') {
-            iconName = focused ? 'pie-chart' : 'pie-chart-outline';
-          }
+            if (route.name === 'Inicio') {
+              iconName = focused ? 'newspaper' : 'newspaper-outline';
+            } else if (route.name === 'Perfil') {
+              iconName = focused ? 'person' : 'person-outline';
+            } else if (route.name === 'Principal') {
+              iconName = focused ? 'home' : 'home-outline';
+            }  else if (route.name === 'Gastos') {
+              iconName = focused ? 'cash' : 'cash-outline';
+            } else if (route.name === 'Presupuestos') {
+              iconName = focused ? 'pie-chart' : 'pie-chart-outline';
+            } else if (route.name === 'Subscriptions') {
+              iconName = focused ? 'repeat' : 'repeat-outline';
+            }
 
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
-          backgroundColor: 'white',
-          borderTopWidth: 0,
-          elevation: 8,
-          height: 55,
-          paddingBottom: 5,
-        },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Principal" component={MainAppContent} />
-      <Tab.Screen name="Inicio" component={HomeScreen} />
-      <Tab.Screen name="Gastos" component={GastosScreen} />
-      <Tab.Screen name="Presupuestos" component={HomeScreen} />
-      <Tab.Screen name="Perfil" component={ProfileScreen} />
-    </Tab.Navigator>
+
+            return <Icon name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: '#2563eb',
+          tabBarInactiveTintColor: 'gray',
+          tabBarStyle: {
+            backgroundColor: 'white',
+            borderTopWidth: 0,
+            elevation: 8,
+            height: 55,
+            paddingBottom: 5,
+          },
+          headerShown: false,
+        })}
+      >
+        <Tab.Screen name="Principal" component={MainAppContent} />
+        <Tab.Screen name="Inicio" component={HomeScreen} />
+        <Tab.Screen name="Gastos" component={GastosScreen} />
+        <Tab.Screen name="Presupuestos" component={HomeScreen} />
+        <Tab.Screen name="Perfil" component={ProfileScreen} />
+        <Tab.Screen name="Subscriptions" component={SubscriptionsScreen}/>
+      </Tab.Navigator>
+    </GastosProvider>  
   );
 };
 
