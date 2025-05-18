@@ -47,11 +47,11 @@ const DetalleGastoScreen = ({ route, navigation }: any) => {
   ];
 
   const frecuencias = [
-    { id: 'diaria', nombre: 'Diaria' },
-    { id: 'semanal', nombre: 'Semanal' },
-    { id: 'mensual', nombre: 'Mensual' },
-    { id: 'anual', nombre: 'Anual' },
-  ];
+  { id: 'diaria', nombre: 'Diaria', valorBackend: 1 },
+  { id: 'semanal', nombre: 'Semanal', valorBackend: 2 },
+  { id: 'mensual', nombre: 'Mensual', valorBackend: 3 },
+  { id: 'anual', nombre: 'Anual', valorBackend: 4 }
+];
 
   useEffect(() => {
     const fetchGasto = async () => {
@@ -103,6 +103,81 @@ const DetalleGastoScreen = ({ route, navigation }: any) => {
     );
   }
 
+  const handleGuardarCambios = async () => {
+  // Validaciones básicas
+  if (!descripcion.trim()) {
+    Alert.alert('Error', 'La descripción es obligatoria');
+    return;
+  }
+
+  const cantidadNum = parseFloat(cantidad);
+  if (isNaN(cantidadNum) || cantidadNum <= 0) {
+    Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
+    return;
+  }
+
+  try {
+    const datosActualizados = {
+      Id: gastoId,
+      CategoriaId: categoriaId || null, // Puede ser null según el DTO
+      MetodoPagoId: null, // O el valor correspondiente si lo manejas
+      Cantidad: cantidadNum,
+      Descripcion: descripcion.trim(),
+      Fecha: fecha.toISOString(),
+      Frecuencia: esFrecuente
+        ? (frecuencias.findIndex(f => f.id === frecuencia) + 1 || 0) // Mapear a número
+        : 0,
+      Activo: true,
+      Notificar: esFrecuente ? notificar : false,
+      Nota: notas.trim() || null, // Enviar null si está vacío
+      EtiquetaIds: [] // Array vacío si no manejas etiquetas
+    };
+
+    console.log('Datos a enviar:', JSON.stringify(datosActualizados, null, 2));
+
+    const response = await axios.put(`${API_BASE_URL}/api/gastos/${gastoId}`, datosActualizados, {
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    // Actualizar el estado local
+    setGasto({
+      ...gasto,
+      descripcion: datosActualizados.Descripcion,
+      cantidad: datosActualizados.Cantidad,
+      fecha: datosActualizados.Fecha,
+      categoriaId: datosActualizados.CategoriaId,
+      nota: datosActualizados.Nota,
+      frecuencia: frecuencias[datosActualizados.Frecuencia - 1]?.id || null, // Mapear de vuelta
+      notificar: datosActualizados.Notificar
+    });
+
+    Alert.alert('Éxito', 'Los cambios se guardaron correctamente');
+    setEditMode(false);
+  } catch (error) {
+    console.error('Error al guardar cambios:', error);
+    
+    let errorMessage = 'No se pudieron guardar los cambios';
+    if (axios.isAxiosError(error)) {
+      // Mostrar mensajes de validación del backend
+      if (error.response?.data?.errors) {
+        const validationErrors = Object.values(error.response.data.errors)
+          .flat()
+          .join('\n');
+        errorMessage = `Errores de validación:\n${validationErrors}`;
+      } else {
+        errorMessage = error.response?.data?.title || 
+                      error.response?.data?.message || 
+                      errorMessage;
+      }
+    }
+    
+    Alert.alert('Error', errorMessage);
+  }
+};
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -141,11 +216,14 @@ const DetalleGastoScreen = ({ route, navigation }: any) => {
             />
 
             <Text style={styles.label}>Fecha</Text>
-            <TouchableOpacity 
-              style={styles.input} 
+           <TouchableOpacity 
+              style={[styles.input, {flexDirection: 'row', alignItems: 'center'}]} 
               onPress={() => setShowDatePicker(true)}
             >
-              <Text>{formatFecha(fecha)}</Text>
+              <View style={{flex: 1}}>
+                <Text>{formatFecha(fecha)}</Text>
+              </View>
+              <Icon name="calendar" size={20} color="#666" />
             </TouchableOpacity>
 
             {showDatePicker && (
@@ -239,15 +317,7 @@ const DetalleGastoScreen = ({ route, navigation }: any) => {
 
           <TouchableOpacity 
             style={styles.saveButton}
-            onPress={() => {
-              Alert.alert('Guardar', '¿Deseas guardar los cambios?', [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Guardar', onPress: () => {
-                  // Aquí iría la lógica para guardar los cambios
-                  setEditMode(false);
-                }}
-              ]);
-            }}
+            onPress={handleGuardarCambios}
           >
             <Text style={styles.saveButtonText}>Guardar Cambios</Text>
           </TouchableOpacity>
@@ -258,7 +328,7 @@ const DetalleGastoScreen = ({ route, navigation }: any) => {
           <View style={styles.detailCard}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Descripción:</Text>
-              <Text style={styles.detailValue}>{gasto.descripcion}</Text>
+              <Text style={styles.detailValue}>{gasto.descripcion || 'Sin descripción'}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Cantidad:</Text>
@@ -276,12 +346,12 @@ const DetalleGastoScreen = ({ route, navigation }: any) => {
                 {categorias.find(c => c.id === gasto.categoriaId)?.nombre || 'Otros'}
               </Text>
             </View>
-            {gasto.frecuencia && (
+            {gasto.frecuencia ? (
               <>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Frecuencia:</Text>
                   <Text style={styles.detailValue}>
-                    {frecuencias.find(f => f.id === gasto.frecuencia)?.nombre}
+                    {frecuencias.find(f => f.id === gasto.frecuencia)?.nombre || '-'}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
@@ -291,11 +361,13 @@ const DetalleGastoScreen = ({ route, navigation }: any) => {
                   </Text>
                 </View>
               </>
-            )}
+            ) : null}
             {gasto.nota && (
               <View style={styles.notesContainer}>
                 <Text style={styles.detailLabel}>Notas:</Text>
-                <Text style={styles.notesText}>{gasto.nota}</Text>
+                <Text style={styles.notesText}>
+                  {gasto?.nota || 'Sin nota'}
+                </Text>
               </View>
             )}
           </View>
@@ -364,12 +436,15 @@ const styles = StyleSheet.create({
   },
   notesContainer: {
     marginTop: 8,
+    flex: 1,
   },
   notesText: {
     fontSize: 14,
     color: '#475569',
     marginTop: 4,
     fontStyle: 'italic',
+    flexShrink: 1,
+    flexWrap: 'wrap'
   },
   editContainer: {
     flex: 1,

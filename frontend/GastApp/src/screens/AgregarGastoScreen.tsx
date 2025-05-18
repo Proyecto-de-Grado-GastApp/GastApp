@@ -214,8 +214,10 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
         <TouchableOpacity 
           style={styles.input} 
           onPress={() => setShowDatePicker(true)}
-        >
-          <Text>{formatDate(fecha)}</Text>
+        > 
+          <View style={{flex: 1}}>
+            <Text>{formatDate(fecha)}</Text>
+          </View>
         </TouchableOpacity>
 
         {showDatePicker && (
@@ -277,7 +279,7 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
               onPress={() => setShowFrecuenciaModal(true)}
             >
               <Text>
-                {frecuencias.find(f => f.id === frecuencia)?.nombre || 'Seleccionar'}
+                {frecuencias.find(f => f.id === frecuencia)?.nombre ?? 'Seleccionar'}
               </Text>
               <Icon name="chevron-down" size={20} color="#666" style={styles.dropdownIcon} />
             </TouchableOpacity>
