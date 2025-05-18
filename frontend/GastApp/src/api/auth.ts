@@ -2,22 +2,26 @@ import client from './client'; // Asumiendo que has creado este archivo como se 
 
 import { API_BASE_URL } from '../api/urlConnection';
 
-export const loginUser = async (email: string, password: string): Promise<string> => {
+export const loginUser = async (
+  email: string,
+  password: string
+): Promise<{ token: string; userId: number }> => {
   try {
     const response = await client.post(`${API_BASE_URL}/api/usuarios/login`, {
       Email: email,
       Contrasena: password,
     });
 
-    if (!response.data.token) {
-      throw new Error('Respuesta sin token');
+    const { token, userId } = response.data;
+
+    if (!token || typeof userId !== 'number') {
+      throw new Error('Respuesta incompleta del servidor');
     }
 
-    return response.data.token;
+    return { token, userId };
   } catch (error: any) {
     console.error('Error de login:', error.message);
-    
-    // Manejo específico de errores de axios
+
     if (error.response) {
       if (error.response.status === 401) {
         throw new Error('Credenciales incorrectas. Verifica tu email y contraseña.');

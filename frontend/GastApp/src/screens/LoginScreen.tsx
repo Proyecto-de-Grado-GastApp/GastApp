@@ -22,8 +22,9 @@ const LoginScreen = () => {
     }
 
     try {
-      const token = await loginUser(email, password);
-      await login(token);
+      const { token, userId } = await loginUser(email, password);
+      await login(token, userId);
+
       Alert.alert('Éxito', 'Inicio de sesión exitoso');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo iniciar sesión');

@@ -72,7 +72,7 @@ namespace GastAPI.Controllers
                 return Unauthorized("Correo o contraseña incorrectos");
 
             var token = GenerateJwtToken(usuario);
-            return Ok(new { token });
+            return Ok(new { token, userId = usuario.Id });
         }
 
         // Endpoint para validar el token manualmente
