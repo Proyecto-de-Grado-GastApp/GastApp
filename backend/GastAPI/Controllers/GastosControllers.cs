@@ -21,9 +21,19 @@ namespace GastAPI.Controllers
 
         // GET: api/gastos
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<GastoDto>>> GetAll()
         {
+            // Obtener el ID del usuario autenticado
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+            
+            var userId = long.Parse(userIdClaim.Value);
+
+            // Filtrar gastos por usuario
             var gastos = await _context.Gastos
+                .Where(g => g.UsuarioId == userId) // Filtro crítico
                 .Include(g => g.Etiquetas)
                 .Select(g => new GastoDto
                 {
@@ -49,11 +59,19 @@ namespace GastAPI.Controllers
 
         // GET: api/gastos/5
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<GastoDto>> GetById(long id)
         {
+            // Obtener ID de usuario
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+
+            var userId = long.Parse(userIdClaim.Value);
+
             var gasto = await _context.Gastos
                 .Include(g => g.Etiquetas)
-                .FirstOrDefaultAsync(g => g.Id == id);
+                .FirstOrDefaultAsync(g => g.Id == id && g.UsuarioId == userId); // Verificar propiedad
 
             if (gasto == null) return NotFound();
 
@@ -134,17 +152,20 @@ namespace GastAPI.Controllers
 
         // PUT: api/gastos/5
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<ActionResult> Update(long id, UpdateGastoDto dto)
         {
-            if (id != dto.Id) return BadRequest();
-
+            // Obtener ID de usuario
             var identity = HttpContext.User.Identity as ClaimsIdentity;
             var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null) return Unauthorized();
 
             var userId = long.Parse(userIdClaim.Value);
 
-            var gasto = await _context.Gastos.Include(g => g.Etiquetas).FirstOrDefaultAsync(g => g.Id == id);
+            // Verificar que el gasto pertenece al usuario
+            var gasto = await _context.Gastos
+                .Include(g => g.Etiquetas)
+                .FirstOrDefaultAsync(g => g.Id == id && g.UsuarioId == userId);
 
             if (gasto == null) return NotFound();
 
@@ -183,9 +204,20 @@ namespace GastAPI.Controllers
 
         // DELETE: api/gastos/5
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<ActionResult> Delete(long id)
         {
-            var gasto = await _context.Gastos.FindAsync(id);
+            // Obtener ID de usuario
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+
+            var userId = long.Parse(userIdClaim.Value);
+
+            // Verificar que el gasto pertenece al usuario
+            var gasto = await _context.Gastos
+                .FirstOrDefaultAsync(g => g.Id == id && g.UsuarioId == userId);
+
             if (gasto == null) return NotFound();
 
             gasto.Activo = false;

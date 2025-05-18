@@ -96,7 +96,7 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
     selectedDate?: Date | undefined
   ): void => {
     const currentDate: Date = selectedDate || fecha;
-    setShowDatePicker(Platform.OS === 'ios');
+    setShowDatePicker(Platform.OS === 'android');
     setFecha(currentDate);
   };
 
