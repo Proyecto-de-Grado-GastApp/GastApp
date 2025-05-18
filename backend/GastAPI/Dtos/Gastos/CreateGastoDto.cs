@@ -4,9 +4,6 @@ namespace GastAPI.Dtos.Gastos
 {
     public class CreateGastoDto
     {
-        [Required]
-        public long UsuarioId { get; set; }
-
         public long? CategoriaId { get; set; }
         public long? MetodoPagoId { get; set; }
 
@@ -23,7 +20,7 @@ namespace GastAPI.Dtos.Gastos
         public bool Activo { get; set; } = true;
         public bool Notificar { get; set; } = false;
 
-        public string Nota { get; set; } = string.Empty;
+        public string? Nota { get; set; } = string.Empty;
 
         // Lista opcional de etiquetas asociadas
         public List<long>? EtiquetaIds { get; set; }

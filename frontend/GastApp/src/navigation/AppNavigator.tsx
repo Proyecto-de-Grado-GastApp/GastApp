@@ -16,6 +16,10 @@ import AboutAppScreen from '../screens/AboutAppScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import GastosScreen from '../screens/GastosScreen';
 import AgregarGastoScreen from '../screens/AgregarGastoScreen';
+import AgregarPresupuestoScreen from '../screens/AgregarPresupuestoScreen';
+import PresupuestosScreen from '../screens/PresupuestosScreen';
+
+import DetalleGastoScreen from '../screens/DetalleGastoScreen';
 
 // Tipos para las rutas
 // Stack para los grupos de pantallas
@@ -28,6 +32,9 @@ export type RootStackParamList = {
   AboutApp: undefined;
   EditProfile: undefined;
   AgregarGastoScreen: undefined;
+  AgregarPresupuestoScreen: undefined;
+  GastosScreen: undefined;
+  DetalleGastoScreen: { gastoId: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -80,7 +87,7 @@ const MainTabs = () => {
       <Tab.Screen name="Principal" component={MainAppContent} />
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Gastos" component={GastosScreen} />
-      <Tab.Screen name="Presupuestos" component={HomeScreen} />
+      <Tab.Screen name="Presupuestos" component={PresupuestosScreen} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -100,15 +107,18 @@ const AppNavigator = () => {
           headerShown: false
         }}
       >
-        {/* // Si hay token, muestra las tabs principales
-        // Si no hay token, muestra las pantallas de Login y Registro */}
         {token ? (
           <>
             <Stack.Screen name="Principal" component={MainTabs} />
-  
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="AboutApp" component={AboutAppScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen 
+              name="DetalleGastoScreen" 
+              component={DetalleGastoScreen} 
+              options={{ title: 'Detalle de Gasto'}} // Mostrar header para esta pantalla
+            />
+            <Stack.Screen name="AgregarPresupuestoScreen" component={AgregarPresupuestoScreen}/>
             <Stack.Screen name="AgregarGastoScreen" component={AgregarGastoScreen} />
           </>
         ) : (

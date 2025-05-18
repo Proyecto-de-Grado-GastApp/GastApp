@@ -41,7 +41,7 @@ namespace GastAPI.Models
         public bool Notificar { get; set; } = false;
 
         [MaxLength(1000)]
-        public string Nota { get; set; } = string.Empty;
+        public string? Nota { get; set; } = string.Empty;
 
         // Auditoría
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;

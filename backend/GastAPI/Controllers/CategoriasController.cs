@@ -3,6 +3,7 @@ using GastAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace GastAPI.Controllers
 {
@@ -75,5 +76,24 @@ namespace GastAPI.Controllers
 
             return NoContent();
         }
+
+        [HttpGet("categoria/{id_categoria}")]
+        [Authorize]
+        public async Task<IActionResult> GetGastosPorCategoria(long id_categoria)
+        {
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            var userId = long.Parse(userIdClaim.Value);
+
+            var gastos = await _context.Gastos
+                .Where(g => g.UsuarioId == userId && g.CategoriaId == id_categoria)
+                .ToListAsync();
+
+            return Ok(gastos);
+        }
+
     }
 }

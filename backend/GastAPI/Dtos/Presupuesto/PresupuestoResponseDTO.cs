@@ -1,21 +1,13 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace GastAPI.Dtos.Presupuesto
 {
-    public class PresupuestoCreateDTO
+    public class PresupuestoResponseDTO
     {
-        [Required]
+        public long Id { get; set; }
         public long CategoriaId { get; set; }
-
-        [Required]
-        [Range(0.01, double.MaxValue)]
+        public string CategoriaNombre { get; set; } = string.Empty;
         public decimal Cantidad { get; set; }
-
-        [Required]
         public DateTime FechaInicio { get; set; }
-
-        [Required]
         public DateTime FechaFin { get; set; }
+        public string Mensaje { get; set; } = string.Empty;
     }
-
 }

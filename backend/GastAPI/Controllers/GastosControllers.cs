@@ -3,6 +3,8 @@ using GastAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GastAPI.Dtos.Gastos;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace GastAPI.Controllers
 {
@@ -78,11 +80,22 @@ namespace GastAPI.Controllers
 
         // POST: api/gastos
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult> Create(CreateGastoDto dto)
         {
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                Console.WriteLine("No se encontró ClaimTypes.NameIdentifier en el token.");
+                return Unauthorized();
+            }
+
+            var userId = long.Parse(userIdClaim.Value);
+
             var gasto = new Gasto
             {
-                UsuarioId = dto.UsuarioId,
+                UsuarioId = userId,
                 CategoriaId = dto.CategoriaId,
                 MetodoPagoId = dto.MetodoPagoId,
                 Cantidad = dto.Cantidad,
@@ -118,16 +131,24 @@ namespace GastAPI.Controllers
             return CreatedAtAction(nameof(GetById), new { id = gasto.Id }, null);
         }
 
+
         // PUT: api/gastos/5
         [HttpPut("{id}")]
         public async Task<ActionResult> Update(long id, UpdateGastoDto dto)
         {
             if (id != dto.Id) return BadRequest();
 
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+
+            var userId = long.Parse(userIdClaim.Value);
+
             var gasto = await _context.Gastos.Include(g => g.Etiquetas).FirstOrDefaultAsync(g => g.Id == id);
+
             if (gasto == null) return NotFound();
 
-            gasto.UsuarioId = dto.UsuarioId;
+            gasto.UsuarioId = userId;
             gasto.CategoriaId = dto.CategoriaId;
             gasto.MetodoPagoId = dto.MetodoPagoId;
             gasto.Cantidad = dto.Cantidad;
@@ -173,5 +194,24 @@ namespace GastAPI.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        [HttpGet("categoria/{id_categoria}")]
+        [Authorize]
+        public async Task<IActionResult> GetGastosPorCategoria(long id_categoria)
+        {
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            var userId = long.Parse(userIdClaim.Value);
+
+            var gastos = await _context.Gastos
+                .Where(g => g.UsuarioId == userId && g.CategoriaId == id_categoria)
+                .ToListAsync();
+
+            return Ok(gastos);
+        }
+
     }
 }

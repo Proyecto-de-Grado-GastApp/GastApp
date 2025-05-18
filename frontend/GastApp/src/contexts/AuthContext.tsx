@@ -7,9 +7,9 @@ import { API_BASE_URL } from '../api/urlConnection';
 interface AuthContextType {
   token: string | null;
   isLoading: boolean;
-  login: (token: string) => Promise<void>;
+  login: (token: string, userId: number) => Promise<void>; // Modificado
   logout: () => Promise<void>;
-  checkToken: () => Promise<boolean>; 
+  checkToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -17,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<number | null>(null);
 
   // Configuración inicial de axios
   useEffect(() => {
@@ -52,27 +53,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (newToken: string) => {
-    try {
-      await AsyncStorage.setItem('@auth_token', newToken);
-      setToken(newToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-    } catch (error) {
-      console.error('Error saving token:', error);
-      throw error;
-    }
+    await AsyncStorage.setItem('@auth_token', newToken);
+    setToken(newToken);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
   };
+
 
   const logout = async () => {
-    try {
-      await AsyncStorage.removeItem('@auth_token');
-      setToken(null);
-      delete axios.defaults.headers.common['Authorization'];
-    } catch (error) {
-      console.error('Error limpiando el auth:', error);
-      throw error;
-    }
+    await AsyncStorage.removeItem('@auth_token');
+    setToken(null);
+    delete axios.defaults.headers.common['Authorization'];
   };
-
+  
   const checkToken = async () => {
     const storedToken = await AsyncStorage.getItem('@auth_token');
     if (!storedToken) return false;
