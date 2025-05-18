@@ -30,7 +30,7 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Principal: undefined;
-  Subscriptions: undefined;
+  Suscripciones: undefined;
   Settings: undefined;
   AboutApp: undefined;
   EditProfile: undefined;
@@ -49,7 +49,7 @@ export type BottomTabParamList = {
   Gastos: undefined;
   Presupuestos: undefined;
   Perfil: undefined;
-  Subscriptions: undefined;
+  Suscripciones: undefined;
 };
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -73,7 +73,7 @@ const MainTabs = () => {
               iconName = focused ? 'cash' : 'cash-outline';
             } else if (route.name === 'Presupuestos') {
               iconName = focused ? 'pie-chart' : 'pie-chart-outline';
-            } else if (route.name === 'Subscriptions') {
+            } else if (route.name === 'Suscripciones') {
               iconName = focused ? 'repeat' : 'repeat-outline';
             }
 
@@ -95,8 +95,8 @@ const MainTabs = () => {
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Gastos" component={GastosScreen} />
       <Tab.Screen name="Presupuestos" component={PresupuestosScreen} />
+      <Tab.Screen name="Suscripciones" component={SubscriptionsScreen}/>
       <Tab.Screen name="Perfil" component={ProfileScreen} />
-      <Tab.Screen name="Subscriptions" component={SubscriptionsScreen}/>
     </Tab.Navigator>
     </GastosProvider>);
 };
