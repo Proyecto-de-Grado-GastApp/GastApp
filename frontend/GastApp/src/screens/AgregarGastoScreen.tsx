@@ -139,7 +139,7 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
         Frecuencia: frecuencia,
         Notificar: notificar
       }),
-      Nota: notas?.trim() || '', // Asegurar que sea null cuando esté vacío
+      Nota: notas?.trim() || '',
       MetodoPagoId: null,
       EtiquetaIds: []
     };

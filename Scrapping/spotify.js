@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 
-(async () => {
+async function getSpotifyData() {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
 
@@ -24,8 +24,15 @@ const puppeteer = require('puppeteer');
     return results;
   });
 
-console.log(plans);
-
-
   await browser.close();
-})();
+
+  return {
+    nombre: 'Spotify',
+    planes: plans.map(p => ({
+      nombre: p.nombre,
+      precio: parseFloat(p.precio.replace(',', '.')) || 0,
+    })),
+  };
+}
+
+module.exports = { getSpotifyData };

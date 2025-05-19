@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 
-(async () => {
-  const url = 'https://help.netflix.com/es-es/node/24926'; // Cambia por la URL que quieras
+async function getNetflixData() {
+  const url = 'https://help.netflix.com/es-es/node/24926';
 
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
@@ -22,14 +22,22 @@ const puppeteer = require('puppeteer');
 
       precio = precio
         .replace(/€/, '')
-        .replace(/al mes/, '')     
-        .trim(); 
+        .replace(/al mes/, '')
+        .trim();
 
       return { nombre, precio };
     }).filter(Boolean);
   });
 
-  console.log('Planes encontrados:', planes);
-
   await browser.close();
-})();
+
+  return {
+    nombre: 'Netflix',
+    planes: planes.map(p => ({
+      nombre: p.nombre,
+      precio: parseFloat(p.precio.replace(',', '.')) || 0,
+    })),
+  };
+}
+
+module.exports = { getNetflixData };

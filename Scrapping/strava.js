@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 
-(async () => {
+async function getStravaData() {
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
@@ -26,14 +26,13 @@ const puppeteer = require('puppeteer');
         if (planPriceEl) {
           textoPrecio = planPriceEl.textContent.trim();
         } else {
-          // Si existe la clase .plan-price, tomamos el texto completo
           textoPrecio = contenedorPrecio.innerText.trim();
         }
 
         precio = textoPrecio
-          .replace(/\n+/g, ' ')               // Reemplaza saltos de línea por espacios
-          .replace(/\s*por persona\*?/, '')   // Quita "por persona*" si existe
-          .replace(/[^\d,\.]+/g, '')          // Quita todo lo que no sea dígitos, coma o punto
+          .replace(/\n+/g, ' ')
+          .replace(/\s*por persona\*?/, '')
+          .replace(/[^\d,\.]+/g, '')
           .trim();
       }
 
@@ -43,7 +42,15 @@ const puppeteer = require('puppeteer');
     return resultado;
   });
 
-  console.log("Planes encontrados:", planes);
-
   await browser.close();
-})();
+
+  return {
+    nombre: 'Strava',
+    planes: planes.map(p => ({
+      nombre: p.nombre,
+      precio: parseFloat(p.precio.replace(',', '.')) || 0,
+    })),
+  };
+}
+
+module.exports = { getStravaData };

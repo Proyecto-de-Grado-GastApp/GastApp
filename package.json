@@ -1,5 +1,10 @@
 {
   "dependencies": {
     "react-native": "^0.79.2"
-  }
+  },
+
+  "scripts": {
+  "generar-datos": "node Scrapping/generarSuscripciones.js"
+}
+
 }

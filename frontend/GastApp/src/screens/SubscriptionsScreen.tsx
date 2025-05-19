@@ -64,7 +64,7 @@ export default function SubscriptionsScreen({ navigation }: any) {
   };
 
   const handleAgregarGasto = () => {
-    navigation.navigate('AgregarGastoScreen');
+    navigation.navigate('AgregarSuscripcionesScreen');
   };
 
   const formatFecha = (fechaString: string) => {
@@ -110,7 +110,7 @@ export default function SubscriptionsScreen({ navigation }: any) {
       <View style={styles.header}>
         <Text style={styles.title}>Mis Suscripciones</Text>
         <TouchableOpacity onPress={handleAgregarGasto}>
-          <Icon name="add-circle" size={30} color="#2563eb" />
+          <Icon name="add-circle" size={30} color="#white" />
         </TouchableOpacity>
       </View>
 
