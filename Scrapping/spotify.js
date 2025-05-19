@@ -8,13 +8,15 @@ const puppeteer = require('puppeteer');
 
   const plans = await page.evaluate(() => {
     const results = [];
-    document.querySelectorAll('h3[data-encore-id="type"]').forEach(h3 => {
+    document.querySelectorAll('h3.sc-71cce616-1').forEach(h3 => {
       const nombre = h3.textContent.trim();
       let precio = 'No encontrado';
 
       const precioElem = h3.nextElementSibling;
       if (precioElem && precioElem.classList.contains('sc-71cce616-5')) {
         precio = precioElem.textContent.trim();
+        const match = precio.match(/[\d,.]+/);
+        precio = match ? match[0] : 'No encontrado';
       }
 
       results.push({ nombre, precio });
@@ -22,11 +24,7 @@ const puppeteer = require('puppeteer');
     return results;
   });
 
-  const planesFiltrados = plans.filter(plan =>
-  ['Individual', 'Estudiantes', 'Duo', 'Familiar'].includes(plan.nombre)
-);
-
-console.log('Planes Premium filtrados:', planesFiltrados);
+console.log(plans);
 
 
   await browser.close();

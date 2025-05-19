@@ -18,7 +18,12 @@ const puppeteer = require('puppeteer');
       const nombre = nombreSpan.textContent.trim().replace(/:$/, '');
 
       const contenidoCompleto = el.textContent.trim();
-      const precio = contenidoCompleto.replace(nombreSpan.textContent, '').trim();
+      let precio = contenidoCompleto.replace(nombreSpan.textContent, '').trim();
+
+      precio = precio
+        .replace(/€/, '')
+        .replace(/al mes/, '')     
+        .trim(); 
 
       return { nombre, precio };
     }).filter(Boolean);
