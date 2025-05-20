@@ -247,84 +247,83 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
   };
 
   const handleGuardar = async () => {
-    setIsLoading(true);
-    // Validaciones básicas
-    if (!descripcion?.trim()) {
-      Alert.alert('Error', 'La descripción es obligatoria');
-      return;
-    }
+  // Validaciones básicas
+  if (!descripcion?.trim()) {
+    Alert.alert('Error', 'La descripción es obligatoria');
+    return;
+  }
 
-    const cantidadNum = parseFloat(cantidad);
-    if (isNaN(cantidadNum) || cantidadNum <= 0) {
-      Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
-      return;
-    }
+  const cantidadNum = parseFloat(cantidad);
+  if (isNaN(cantidadNum) || cantidadNum <= 0) {
+    Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
+    return;
+  }
 
-    if (!categoriaId) {
-      Alert.alert('Error', 'Seleccione una categoría');
-      return;
-    }
+  if (!categoriaId) {
+    Alert.alert('Error', 'Seleccione una categoría');
+    return;
+  }
 
-    // Validación específica para Nota
-    if (notas && notas.length > 500) {
-      Alert.alert('Error', 'Las notas no pueden exceder los 500 caracteres');
-      return;
-    }
+  // Validación específica para Nota
+  if (notas && notas.length > 500) {
+    Alert.alert('Error', 'Las notas no pueden exceder los 500 caracteres');
+    return;
+  }
 
-    setIsLoading(true);
+  setIsLoading(true);
 
-    try {
-      // Estructura de datos ajustada a las validaciones del backend
-      const gastoData = {
-        CategoriaId: categoriaId,
-        Cantidad: cantidadNum,
-        Descripcion: descripcion.trim(),
-        Fecha: fecha.toISOString(),
-        Activo: true,
-        EsFrecuente: esFrecuente,
-        ...(esFrecuente && {
-          Frecuencia: frecuencia,
-          Notificar: notificar
-        }),
-        Nota: notas?.trim() || '', // Asegurar que sea null cuando esté vacío
-        MetodoPagoId: null,
-        EtiquetaIds: []
-      };
+  try {
+    // Estructura de datos ajustada a las validaciones del backend
+    const gastoData = {
+      CategoriaId: categoriaId,
+      Cantidad: cantidadNum,
+      Descripcion: descripcion.trim(),
+      Fecha: fecha.toISOString(),
+      Activo: true,
+      EsFrecuente: esFrecuente,
+      ...(esFrecuente && {
+        Frecuencia: frecuencia,
+        Notificar: notificar
+      }),
+      Nota: notas?.trim() || '',
+      MetodoPagoId: null,
+      EtiquetaIds: []
+    };
 
-      console.log('Datos a enviar:', JSON.stringify(gastoData, null, 2));
+    console.log('Datos a enviar:', JSON.stringify(gastoData, null, 2));
 
-      const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
+    const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
 
-      Alert.alert('Éxito', 'Gasto guardado correctamente');
-      navigation.goBack();
-    } catch (error) {
-      let errorMessage = 'Error al guardar el gasto';
-      
-      if (axios.isAxiosError(error)) {
-        // Manejo detallado de errores de validación
-        if (error.response?.data?.errors) {
-          const validationErrors = Object.values(error.response.data.errors)
-            .flat()
-            .join('\n');
-          errorMessage = `Errores de validación:\n${validationErrors}`;
-        } else {
-          errorMessage = error.response?.data?.title || 
-                        error.response?.data?.message || 
-                        error.message;
-        }
+    Alert.alert('Éxito', 'Gasto guardado correctamente');
+    navigation.goBack();
+  } catch (error) {
+    let errorMessage = 'Error al guardar el gasto';
+    
+    if (axios.isAxiosError(error)) {
+      // Manejo detallado de errores de validación
+      if (error.response?.data?.errors) {
+        const validationErrors = Object.values(error.response.data.errors)
+          .flat()
+          .join('\n');
+        errorMessage = `Errores de validación:\n${validationErrors}`;
+      } else {
+        errorMessage = error.response?.data?.title || 
+                      error.response?.data?.message || 
+                      error.message;
       }
-
-      Alert.alert('Error', errorMessage);
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    Alert.alert('Error', errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('es-ES', {

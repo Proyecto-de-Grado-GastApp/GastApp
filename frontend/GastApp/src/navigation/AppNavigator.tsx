@@ -18,6 +18,7 @@ import GastosScreen from '../screens/GastosScreen';
 import AgregarGastoScreen from '../screens/AgregarGastoScreen';
 import AgregarPresupuestoScreen from '../screens/AgregarPresupuestoScreen';
 import PresupuestosScreen from '../screens/PresupuestosScreen';
+import AgregarSuscripcionesScreen from '../screens/AgregarSuscripcionesScreen';
 
 import DetalleGastoScreen from '../screens/DetalleGastoScreen';
 import SubscriptionsScreen from '../screens/SubscriptionsScreen';
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   AgregarGastoScreen: undefined;
   AgregarPresupuestoScreen: undefined;
+  AgregarSuscripcionesScreen: undefined;
   GastosScreen: undefined;
   DetalleGastoScreen: { gastoId: number };
 };
@@ -131,6 +133,7 @@ const AppNavigator = () => {
             />
             <Stack.Screen name="AgregarPresupuestoScreen" component={AgregarPresupuestoScreen}/>
             <Stack.Screen name="AgregarGastoScreen" component={AgregarGastoScreen} />
+            <Stack.Screen name="AgregarSuscripcionesScreen" component={AgregarSuscripcionesScreen} />
           </>
         ) : (
           <>
