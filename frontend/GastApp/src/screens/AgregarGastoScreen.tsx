@@ -21,6 +21,10 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 import type { StackNavigationProp } from '@react-navigation/stack';
 
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import MLKitOcr from 'react-native-mlkit-ocr';
+import RNFS from 'react-native-fs';
+
 type RootStackParamList = {
   AgregarGasto: undefined;
   Home: undefined;
@@ -95,89 +99,232 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
     event: any,
     selectedDate?: Date | undefined
   ): void => {
-    const currentDate: Date = selectedDate || fecha;
-    setShowDatePicker(Platform.OS === 'android');
-    setFecha(currentDate);
+    // Esto es necesario para Android
+    setShowDatePicker(Platform.OS === 'ios'); // Cerramos el picker en Android
+    
+    if (event.type === 'set' && selectedDate) {
+      setFecha(selectedDate);
+    }
+  };
+
+  const analizarImagen = async (originalUri: string) => {
+    try {
+      const blocks = await MLKitOcr.detectFromUri(originalUri);
+      const allText = blocks.map(block => block.text).join('\n');
+      console.log('Texto completo detectado:', allText);
+
+      // Función mejorada para detectar montos
+      const extractAmount = (text: string) => {
+        // Patrones específicos para Mercadona
+        const mercadonaPatterns = [
+          /TOTAL\s+(\d+[.,]\d{2})/i,               // TOTAL 32,68
+          /TOTAL.*?\n.*?(\d+[.,]\d{2})/i,          // TOTAL (línea siguiente)
+          /TARJETA\.BANCARIA\s+(\d+[.,]\d{2})/i,   // TARJETA.BANCARIA 32,68
+          /(\d+[.,]\d{2})\s*€?\s*$/im              // Número al final de línea
+        ];
+
+        // Buscar primero patrones específicos de Mercadona
+        for (const pattern of mercadonaPatterns) {
+          const match = text.match(pattern);
+          if (match && match[1]) {
+            return match[1].replace(',', '.');
+          }
+        }
+
+        // Si no encuentra, usar el método genérico
+        const allNumbers = text.match(/\d+[.,]\d{2}/g) || [];
+        if (allNumbers.length > 0) {
+          // Ordenar de mayor a menor y tomar el primero (el más grande)
+          const sortedNumbers = [...new Set(allNumbers)].sort((a, b) => {
+            const numA = parseFloat(a.replace(',', '.'));
+            const numB = parseFloat(b.replace(',', '.'));
+            return numB - numA;
+          });
+          return sortedNumbers[0].replace(',', '.');
+        }
+
+        return null;
+      };
+
+      // Función mejorada para detectar descripción
+      const extractDescription = (text: string) => {
+        // Detectar si es ticket de Mercadona
+        const isMercadona = text.includes('MERCADONA') || 
+                          text.includes('MERCADONA S.A.') || 
+                          text.includes('CENTRO:');
+
+        if (isMercadona) {
+          // Extraer ubicación del Mercadona
+          const locationMatch = text.match(/AVDA\. .+\n\s+([A-ZÁÉÍÓÚÑ]+)/i);
+          const location = locationMatch ? locationMatch[1] : 'Mercadona';
+          
+          // Extraer fecha del ticket
+          const dateMatch = text.match(/\d{2}\/\d{2}\/\d{4}/);
+          const date = dateMatch ? dateMatch[0] : '';
+          
+          return `Compra ${location} ${date}`.trim();
+        }
+
+        // Para otros supermercados, buscar el nombre
+        const supermarketNames = ['CARREFOUR', 'ALCAMPO', 'LIDL', 'ALDI', 'DIA', 'HIPERCOR', 'EL CORTE INGLÉS'];
+        for (const name of supermarketNames) {
+          if (text.includes(name)) {
+            return `Compra ${name}`;
+          }
+        }
+
+        // Si no reconoce el supermercado, buscar primera línea con texto significativo
+        const lines = text.split('\n')
+          .filter(line => line.trim().length > 3 && !line.match(/^\d/))
+          .filter(line => !line.match(/TICKET|TOTAL|CIF|TELEFONO|IVA|PRECIO|IMPORTE/i));
+
+        return lines.length > 0 ? lines[0].trim() : 'Compra no identificada';
+      };
+
+      // Extraer datos
+      const cantidadDetectada = extractAmount(allText);
+      const descripcionDetectada = extractDescription(allText);
+
+      // Mostrar confirmación con opción a editar
+      Alert.alert(
+        'Datos detectados',
+        `Descripción: ${descripcionDetectada}\nMonto: ${cantidadDetectada || 'No detectado'}`,
+        [
+          {
+            text: 'Usar estos datos',
+            onPress: () => {
+              if (cantidadDetectada) setCantidad(cantidadDetectada);
+              if (descripcionDetectada) setDescripcion(descripcionDetectada);
+            }
+          },
+          {
+            text: 'Editar manualmente',
+            onPress: () => {
+              // Foco en los campos de texto para edición
+              if (cantidadDetectada) setCantidad(cantidadDetectada);
+              if (descripcionDetectada) setDescripcion(descripcionDetectada);
+            },
+            style: 'cancel'
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.error('Error procesando imagen:', error);
+      Alert.alert('Error', 'No se pudo procesar la imagen');
+    }
+  };
+
+  const manejarImagenDesdeCamara = () => {
+    launchCamera({ 
+      mediaType: 'photo', 
+      quality: 0.6,
+      includeBase64: false,
+      saveToPhotos: false // No guardar en galería para evitar permisos
+    }, async response => {
+      if (response.assets && response.assets.length > 0) {
+        const img = response.assets[0];
+        if (img.uri) {
+          await analizarImagen(img.uri);
+        }
+      }
+    });
+  };
+
+  const manejarImagenDesdeGaleria = () => {
+    launchImageLibrary({ 
+      mediaType: 'photo', 
+      quality: 0.6,
+      includeBase64: false
+    }, async response => {
+      if (response.assets && response.assets.length > 0) {
+        const img = response.assets[0];
+        if (img.uri) {
+          await analizarImagen(img.uri);
+        }
+      }
+    });
   };
 
   const handleGuardar = async () => {
-  // Validaciones básicas
-  if (!descripcion?.trim()) {
-    Alert.alert('Error', 'La descripción es obligatoria');
-    return;
-  }
-
-  const cantidadNum = parseFloat(cantidad);
-  if (isNaN(cantidadNum) || cantidadNum <= 0) {
-    Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
-    return;
-  }
-
-  if (!categoriaId) {
-    Alert.alert('Error', 'Seleccione una categoría');
-    return;
-  }
-
-  // Validación específica para Nota
-  if (notas && notas.length > 500) {
-    Alert.alert('Error', 'Las notas no pueden exceder los 500 caracteres');
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    // Estructura de datos ajustada a las validaciones del backend
-    const gastoData = {
-      CategoriaId: categoriaId,
-      Cantidad: cantidadNum,
-      Descripcion: descripcion.trim(),
-      Fecha: fecha.toISOString(),
-      Activo: true,
-      EsFrecuente: esFrecuente,
-      ...(esFrecuente && {
-        Frecuencia: frecuencia,
-        Notificar: notificar
-      }),
-      Nota: notas?.trim() || '', // Asegurar que sea null cuando esté vacío
-      MetodoPagoId: null,
-      EtiquetaIds: []
-    };
-
-    console.log('Datos a enviar:', JSON.stringify(gastoData, null, 2));
-
-    const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000
-    });
-
-    Alert.alert('Éxito', 'Gasto guardado correctamente');
-    navigation.goBack();
-  } catch (error) {
-    let errorMessage = 'Error al guardar el gasto';
-    
-    if (axios.isAxiosError(error)) {
-      // Manejo detallado de errores de validación
-      if (error.response?.data?.errors) {
-        const validationErrors = Object.values(error.response.data.errors)
-          .flat()
-          .join('\n');
-        errorMessage = `Errores de validación:\n${validationErrors}`;
-      } else {
-        errorMessage = error.response?.data?.title || 
-                      error.response?.data?.message || 
-                      error.message;
-      }
+    setIsLoading(true);
+    // Validaciones básicas
+    if (!descripcion?.trim()) {
+      Alert.alert('Error', 'La descripción es obligatoria');
+      return;
     }
 
-    Alert.alert('Error', errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    const cantidadNum = parseFloat(cantidad);
+    if (isNaN(cantidadNum) || cantidadNum <= 0) {
+      Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
+      return;
+    }
+
+    if (!categoriaId) {
+      Alert.alert('Error', 'Seleccione una categoría');
+      return;
+    }
+
+    // Validación específica para Nota
+    if (notas && notas.length > 500) {
+      Alert.alert('Error', 'Las notas no pueden exceder los 500 caracteres');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Estructura de datos ajustada a las validaciones del backend
+      const gastoData = {
+        CategoriaId: categoriaId,
+        Cantidad: cantidadNum,
+        Descripcion: descripcion.trim(),
+        Fecha: fecha.toISOString(),
+        Activo: true,
+        EsFrecuente: esFrecuente,
+        ...(esFrecuente && {
+          Frecuencia: frecuencia,
+          Notificar: notificar
+        }),
+        Nota: notas?.trim() || '', // Asegurar que sea null cuando esté vacío
+        MetodoPagoId: null,
+        EtiquetaIds: []
+      };
+
+      console.log('Datos a enviar:', JSON.stringify(gastoData, null, 2));
+
+      const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+
+      Alert.alert('Éxito', 'Gasto guardado correctamente');
+      navigation.goBack();
+    } catch (error) {
+      let errorMessage = 'Error al guardar el gasto';
+      
+      if (axios.isAxiosError(error)) {
+        // Manejo detallado de errores de validación
+        if (error.response?.data?.errors) {
+          const validationErrors = Object.values(error.response.data.errors)
+            .flat()
+            .join('\n');
+          errorMessage = `Errores de validación:\n${validationErrors}`;
+        } else {
+          errorMessage = error.response?.data?.title || 
+                        error.response?.data?.message || 
+                        error.message;
+        }
+      }
+
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('es-ES', {
@@ -213,19 +360,27 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
         <Text style={styles.label}>Fecha</Text>
         <TouchableOpacity 
           style={styles.input} 
-          onPress={() => setShowDatePicker(true)}
+          onPress={() => {
+            if (Platform.OS === 'android') {
+              setShowDatePicker(true); // Solo necesitamos esto en Android
+            }
+          }}
         > 
           <View style={{flex: 1}}>
             <Text>{formatDate(fecha)}</Text>
           </View>
+          {Platform.OS === 'ios' && (
+            <Icon name="calendar" size={20} color="#666" />
+          )}
         </TouchableOpacity>
 
-        {showDatePicker && (
+        {(showDatePicker || Platform.OS === 'ios') && (
           <DateTimePicker
             value={fecha}
             mode="date"
-            display="default"
+            display={Platform.OS === 'android' ? 'calendar' : 'default'}
             onChange={handleFechaChange}
+            maximumDate={new Date()} // Opcional: para no permitir fechas futuras
           />
         )}
 
@@ -350,6 +505,16 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
           ))}
         </View>
       </Modal>
+
+      <View style={styles.floatingButtonContainer}>
+        <TouchableOpacity style={styles.floatingButton} onPress={manejarImagenDesdeGaleria}>
+          <Icon name="image" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.floatingButton, { bottom: 140 }]} onPress={manejarImagenDesdeCamara}>
+          <Icon name="camera" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
     </ScrollView>
   );
 };
@@ -491,6 +656,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 10,
   },
+  floatingButtonContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    zIndex: 100,
+  },
+  floatingButton: {
+    backgroundColor: '#2563eb',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    marginBottom: 15,
+  },
+
 });
 
 export default AgregarGastoScreen;

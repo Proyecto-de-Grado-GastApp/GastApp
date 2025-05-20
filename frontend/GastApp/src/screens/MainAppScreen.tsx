@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import MainAppContent from '../components/MainAppContent';
+import HomeScreen from '../screens/HomeScreen';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -33,7 +33,7 @@ const MainAppScreen = () => {
 
   return (
     <View style={styles.container}>
-      <MainAppContent />
+      <HomeScreen />
     </View>
   );
 };

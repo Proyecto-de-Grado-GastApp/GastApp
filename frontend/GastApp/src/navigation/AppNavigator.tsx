@@ -29,7 +29,7 @@ import { GastosProvider } from '../contexts/GastosContext';
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
-  Principal: undefined;
+  MainApp: undefined;
   Suscripciones: undefined;
   Settings: undefined;
   AboutApp: undefined;
@@ -44,8 +44,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // Bottom Tabs para las pantallas principales que se muestran al iniciar sesión y en la barra de navegación
 export type BottomTabParamList = {
-  Principal: undefined;
-  Inicio: undefined;
+  HomeTab: undefined;  // Cambiado de Principal/Inicio
   Gastos: undefined;
   Presupuestos: undefined;
   Perfil: undefined;
@@ -63,13 +62,11 @@ const MainTabs = () => {
           tabBarIcon: ({ focused, color, size }) => {
             let iconName;
 
-            if (route.name === 'Inicio') {
-              iconName = focused ? 'newspaper' : 'newspaper-outline';
+             if (route.name === 'HomeTab') {
+              iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Perfil') {
               iconName = focused ? 'person' : 'person-outline';
-            } else if (route.name === 'Principal') {
-              iconName = focused ? 'home' : 'home-outline';
-            }  else if (route.name === 'Gastos') {
+            } else if (route.name === 'Gastos') {
               iconName = focused ? 'cash' : 'cash-outline';
             } else if (route.name === 'Presupuestos') {
               iconName = focused ? 'pie-chart' : 'pie-chart-outline';
@@ -91,12 +88,15 @@ const MainTabs = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Principal" component={MainAppContent} />
-      <Tab.Screen name="Inicio" component={HomeScreen} />
-      <Tab.Screen name="Gastos" component={GastosScreen} />
-      <Tab.Screen name="Presupuestos" component={PresupuestosScreen} />
-      <Tab.Screen name="Suscripciones" component={SubscriptionsScreen}/>
-      <Tab.Screen name="Perfil" component={ProfileScreen} />
+       <Tab.Screen 
+          name="HomeTab" 
+          component={HomeScreen}
+          options={{ title: 'Inicio' }} // Mostrar "Inicio" en la UI
+        />
+        <Tab.Screen name="Gastos" component={GastosScreen} />
+        <Tab.Screen name="Presupuestos" component={PresupuestosScreen} />
+        <Tab.Screen name="Suscripciones" component={SubscriptionsScreen}/>
+        <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
     </GastosProvider>);
 };
@@ -117,14 +117,17 @@ const AppNavigator = () => {
       >
         {token ? (
           <>
-            <Stack.Screen name="Principal" component={MainTabs} />
+            <Stack.Screen 
+              name="MainApp"  // Cambiado de "Principal"
+              component={MainTabs} 
+            />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="AboutApp" component={AboutAppScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen 
               name="DetalleGastoScreen" 
               component={DetalleGastoScreen} 
-              options={{ title: 'Detalle de Gasto'}} // Mostrar header para esta pantalla
+              options={{ title: 'Detalle de Gasto'}}
             />
             <Stack.Screen name="AgregarPresupuestoScreen" component={AgregarPresupuestoScreen}/>
             <Stack.Screen name="AgregarGastoScreen" component={AgregarGastoScreen} />
