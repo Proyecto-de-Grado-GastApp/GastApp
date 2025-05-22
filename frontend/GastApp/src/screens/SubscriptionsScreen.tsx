@@ -149,10 +149,10 @@ export default function SubscriptionsScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   // mismos estilos que en GastosScreen
-  container: { flex: 1, padding: 16, backgroundColor: '#2563eb' },
+  container: { flex: 1, padding: 16, backgroundColor: '#f8fafc' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', color: 'white' },
+  title: { fontSize: 24, fontWeight: 'bold', color: 'black' },
   summaryCard: {
     backgroundColor: 'black',
     borderRadius: 12,
