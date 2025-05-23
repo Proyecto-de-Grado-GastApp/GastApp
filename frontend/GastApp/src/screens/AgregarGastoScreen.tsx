@@ -18,12 +18,15 @@ import axios from 'axios';
 import { API_BASE_URL } from '../api/urlConnection';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { mostrarNotificacionGasto } from '../notifications/notifeeService';
 
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import MLKitOcr from 'react-native-mlkit-ocr';
 import RNFS from 'react-native-fs';
+
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
 type RootStackParamList = {
   AgregarGasto: undefined;
@@ -299,9 +302,9 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
       },
       timeout: 10000
     });
-
+    await mostrarNotificacionGasto(descripcion, cantidadNum);
     Alert.alert('Éxito', 'Gasto guardado correctamente');
-    navigation.goBack();
+    setTimeout(() => navigation.goBack(), 500);
   } catch (error) {
     let errorMessage = 'Error al guardar el gasto';
     
@@ -332,6 +335,15 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
       year: 'numeric'
     });
   };
+
+  useEffect(() => {
+    (async () => {
+      const settings = await notifee.requestPermission();
+      if (settings.authorizationStatus < 1) {
+        console.warn('Permiso para notificaciones denegado');
+      }
+    })();
+  }, []);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>

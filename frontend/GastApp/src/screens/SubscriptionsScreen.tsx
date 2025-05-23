@@ -28,12 +28,7 @@ export default function SubscriptionsScreen({ navigation }: any) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("TODOS LOS GASTOS:", res.data);
-
       const filtradas = res.data.filter((gasto: any) => gasto.categoriaId === 9);
-
-
-      console.log("SUSCRIPCIONES FILTRADAS:", filtradas); // <--- Y esto también
 
       const ordenadas = filtradas.sort(
         (a: any, b: any) =>
@@ -115,7 +110,7 @@ export default function SubscriptionsScreen({ navigation }: any) {
       </View>
 
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Total en suscripciones</Text>
+        <Text style={styles.summaryTitle}>Total Gastado en Suscripciones</Text>
         <Text style={styles.totalText}>{total.toFixed(2)}€</Text>
       </View>
 
@@ -154,7 +149,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 24, fontWeight: 'bold', color: 'black' },
   summaryCard: {
-    backgroundColor: 'black',
+    backgroundColor: '#4b91fa',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -164,13 +159,13 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  summaryTitle: { fontSize: 16, color: '#89b5fa', marginBottom: 4 },
+  summaryTitle: { fontSize: 16, color: 'white', marginBottom: 4 },
   totalText: { fontSize: 28, fontWeight: 'bold', color: 'white' },
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'black',
+    backgroundColor: 'white',
     padding: 16,
     borderRadius: 12,
     marginBottom: 10,
@@ -190,11 +185,11 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   itemTextContainer: { flex: 1 },
-  listItemText: { fontSize: 16, fontWeight: '600', color: 'white', marginBottom: 2 },
-  fechaText: { fontSize: 14, color: 'white', marginBottom: 4 },
-  notaText: { fontSize: 13, color: 'white', fontStyle: 'italic' },
+  listItemText: { fontSize: 16, fontWeight: '600', color: 'black', marginBottom: 2 },
+  fechaText: { fontSize: 14, color: 'black', marginBottom: 4 },
+  notaText: { fontSize: 13, color: 'black', fontStyle: 'italic' },
   itemRight: { flexDirection: 'row', alignItems: 'center' },
-  montoText: { fontSize: 16, fontWeight: 'bold', color: '#caddfa', marginRight: 8 },
+  montoText: { fontSize: 16, fontWeight: 'bold', color: '#2563eb', marginRight: 8 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   emptyText: { fontSize: 18, color: '#94a3b8', marginVertical: 16, textAlign: 'center' },
   emptyButton: { backgroundColor: '#89b5fa', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
