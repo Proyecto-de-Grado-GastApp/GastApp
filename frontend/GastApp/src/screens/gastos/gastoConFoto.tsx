@@ -18,12 +18,15 @@ import axios from 'axios';
 import { API_BASE_URL } from '../api/urlConnection';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { mostrarNotificacionGasto } from '../notifications/notifeeService';
 
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import MLKitOcr from 'react-native-mlkit-ocr';
 import RNFS from 'react-native-fs';
+
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
 type RootStackParamList = {
   AgregarGasto: undefined;
@@ -247,10 +250,76 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
   };
 
   const handleGuardar = async () => {
-    // Validaciones básicas
-    if (!descripcion?.trim()) {
-      Alert.alert('Error', 'La descripción es obligatoria');
-      return;
+  // Validaciones básicas
+  if (!descripcion?.trim()) {
+    Alert.alert('Error', 'La descripción es obligatoria');
+    return;
+  }
+
+  const cantidadNum = parseFloat(cantidad);
+  if (isNaN(cantidadNum) || cantidadNum <= 0) {
+    Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
+    return;
+  }
+
+  if (!categoriaId) {
+    Alert.alert('Error', 'Seleccione una categoría');
+    return;
+  }
+
+  // Validación específica para Nota
+  if (notas && notas.length > 500) {
+    Alert.alert('Error', 'Las notas no pueden exceder los 500 caracteres');
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    // Estructura de datos ajustada a las validaciones del backend
+    const gastoData = {
+      CategoriaId: categoriaId,
+      Cantidad: cantidadNum,
+      Descripcion: descripcion.trim(),
+      Fecha: fecha.toISOString(),
+      Activo: true,
+      EsFrecuente: esFrecuente,
+      ...(esFrecuente && {
+        Frecuencia: frecuencia,
+        Notificar: notificar
+      }),
+      Nota: notas?.trim() || '',
+      MetodoPagoId: null,
+      EtiquetaIds: []
+    };
+
+    console.log('Datos a enviar:', JSON.stringify(gastoData, null, 2));
+
+    const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+    await mostrarNotificacionGasto(descripcion, cantidadNum);
+    Alert.alert('Éxito', 'Gasto guardado correctamente');
+    setTimeout(() => navigation.goBack(), 500);
+  } catch (error) {
+    let errorMessage = 'Error al guardar el gasto';
+    
+    if (axios.isAxiosError(error)) {
+      // Manejo detallado de errores de validación
+      if (error.response?.data?.errors) {
+        const validationErrors = Object.values(error.response.data.errors)
+          .flat()
+          .join('\n');
+        errorMessage = `Errores de validación:\n${validationErrors}`;
+      } else {
+        errorMessage = error.response?.data?.title || 
+                      error.response?.data?.message || 
+                      error.message;
+      }
     }
 
     const cantidadNum = parseFloat(cantidad);
@@ -391,6 +460,15 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
       year: 'numeric'
     });
   };
+
+  useEffect(() => {
+    (async () => {
+      const settings = await notifee.requestPermission();
+      if (settings.authorizationStatus < 1) {
+        console.warn('Permiso para notificaciones denegado');
+      }
+    })();
+  }, []);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
