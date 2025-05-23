@@ -247,83 +247,142 @@ const AgregarGastoScreen: React.FC<AgregarGastoScreenProps> = ({ navigation }) =
   };
 
   const handleGuardar = async () => {
-  // Validaciones básicas
-  if (!descripcion?.trim()) {
-    Alert.alert('Error', 'La descripción es obligatoria');
-    return;
-  }
-
-  const cantidadNum = parseFloat(cantidad);
-  if (isNaN(cantidadNum) || cantidadNum <= 0) {
-    Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
-    return;
-  }
-
-  if (!categoriaId) {
-    Alert.alert('Error', 'Seleccione una categoría');
-    return;
-  }
-
-  // Validación específica para Nota
-  if (notas && notas.length > 500) {
-    Alert.alert('Error', 'Las notas no pueden exceder los 500 caracteres');
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    // Estructura de datos ajustada a las validaciones del backend
-    const gastoData = {
-      CategoriaId: categoriaId,
-      Cantidad: cantidadNum,
-      Descripcion: descripcion.trim(),
-      Fecha: fecha.toISOString(),
-      Activo: true,
-      EsFrecuente: esFrecuente,
-      ...(esFrecuente && {
-        Frecuencia: frecuencia,
-        Notificar: notificar
-      }),
-      Nota: notas?.trim() || '',
-      MetodoPagoId: null,
-      EtiquetaIds: []
-    };
-
-    console.log('Datos a enviar:', JSON.stringify(gastoData, null, 2));
-
-    const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000
-    });
-
-    Alert.alert('Éxito', 'Gasto guardado correctamente');
-    navigation.goBack();
-  } catch (error) {
-    let errorMessage = 'Error al guardar el gasto';
-    
-    if (axios.isAxiosError(error)) {
-      // Manejo detallado de errores de validación
-      if (error.response?.data?.errors) {
-        const validationErrors = Object.values(error.response.data.errors)
-          .flat()
-          .join('\n');
-        errorMessage = `Errores de validación:\n${validationErrors}`;
-      } else {
-        errorMessage = error.response?.data?.title || 
-                      error.response?.data?.message || 
-                      error.message;
-      }
+    // Validaciones básicas
+    if (!descripcion?.trim()) {
+      Alert.alert('Error', 'La descripción es obligatoria');
+      return;
     }
 
-    Alert.alert('Error', errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    const cantidadNum = parseFloat(cantidad);
+    if (isNaN(cantidadNum) || cantidadNum <= 0) {
+      Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
+      return;
+    }
+
+    if (!categoriaId) {
+      Alert.alert('Error', 'Seleccione una categoría');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // 1. Mapeo de frecuencias con tipo seguro
+      type FrecuenciaType = 'diaria' | 'semanal' | 'mensual' | 'anual';
+      const mapFrecuencia: Record<FrecuenciaType, number> = {
+        'diaria': 1,
+        'semanal': 2,
+        'mensual': 3,
+        'anual': 4
+      };
+
+      // 2. Preparar datos exactamente como los espera el backend
+      const gastoData = {
+        CategoriaId: categoriaId,
+        Cantidad: cantidadNum,
+        Descripcion: descripcion.trim(),
+        Fecha: fecha.toISOString(), // Formato ISO completo
+        Frecuencia: esFrecuente ? mapFrecuencia[frecuencia as FrecuenciaType] : 0,
+        Activo: true,
+        Notificar: esFrecuente ? notificar : false,
+        Nota: notas?.trim() || '', // string.Empty en backend se representa como ''
+        MetodoPagoId: null,
+        EtiquetaIds: [] // Array vacío
+      };
+
+      console.log('Datos a enviar:', JSON.stringify(gastoData, null, 2));
+
+      // 3. Enviar con headers adecuados
+      const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      });
+
+      Alert.alert('Éxito', 'Gasto guardado correctamente');
+      navigation.goBack();
+    } catch (error: any) {
+      console.error('Error completo:', error);
+      
+      let errorMessage = 'Error al guardar el gasto';
+      if (axios.isAxiosError(error)) {
+        // Mejor manejo de errores de API
+        errorMessage = error.response?.data?.message || 
+                      error.response?.data?.title || 
+                      error.message;
+        
+        // Mostrar detalles adicionales si están disponibles
+        if (error.response?.data?.errors) {
+          const errors = Object.values(error.response.data.errors).flat();
+          errorMessage += `\n${errors.join('\n')}`;
+        }
+      }
+
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleActualizar = async (id: number) => {
+    type FrecuenciaType = 'diaria' | 'semanal' | 'mensual' | 'anual';
+      const mapFrecuencia: Record<FrecuenciaType, number> = {
+        'diaria': 1,
+        'semanal': 2,
+        'mensual': 3,
+        'anual': 4
+      };
+
+    try {
+      // 1. Preparar datos según UpdateGastoDto
+      const updateData = {
+        Id: id, // Asegurar que el ID coincida
+        CategoriaId: categoriaId,
+        Cantidad: parseFloat(cantidad),
+        Descripcion: descripcion.trim(),
+        Fecha: fecha.toISOString(),
+        Frecuencia: esFrecuente ? mapFrecuencia[frecuencia as FrecuenciaType] : 0,
+        Activo: true,
+        Notificar: esFrecuente ? notificar : false,
+        Nota: notas?.trim() || '',
+        MetodoPagoId: null,
+        EtiquetaIds: etiquetasSeleccionadas || [] // Array de IDs de etiquetas
+      };
+
+      console.log('Datos para actualizar:', JSON.stringify(updateData, null, 2));
+
+      // 2. Enviar petición PUT
+      const response = await axios.put(
+        `${API_BASE_URL}/api/gastos/${id}`,
+        updateData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'If-Match': '*' // Opcional para manejo de concurrencia
+          }
+        }
+      );
+
+      Alert.alert('Éxito', 'Gasto actualizado correctamente');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error en actualización:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+
+      let errorMessage = 'Error al actualizar el gasto';
+      if (error.response?.data?.errors) {
+        errorMessage = Object.values(error.response.data.errors).flat().join('\n');
+      }
+      Alert.alert('Error', errorMessage);
+    }
+  };
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('es-ES', {

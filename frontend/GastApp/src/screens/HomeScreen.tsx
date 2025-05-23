@@ -22,7 +22,7 @@ type Categoria = {
   nombre: string;
 };
 
-const HomeScreen = ({ navigation }: any) => {
+const HomeScreen = ({ navigation, route }: any) => {
   const { token } = useAuth();
   const [showWelcome, setShowWelcome] = useState(true);
   const [gastos, setGastos] = useState<any[]>([]);
@@ -31,6 +31,11 @@ const HomeScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const fadeAnim = new Animated.Value(1);
+
+  useEffect(() => {
+    fetchGastos();
+    fetchCategorias();
+  }, [route.params?.refresh]); 
 
   const fetchCategorias = async () => {
     try {
@@ -112,24 +117,35 @@ const HomeScreen = ({ navigation }: any) => {
     const fecha = new Date(fechaString);
     return format(fecha, "d 'de' MMMM", { locale: es });
   };
+  
+  // Función para obtener icono según id de categoría
+  const getIconByCategoria = (nombreCategoria: string) => {
+  const nombre = nombreCategoria ? nombreCategoria.toLowerCase() : 'otros';
 
-  // Función para obtener icono según categoría
-  const getIconByCategoria = (categoriaNombre: string) => {
-    switch (categoriaNombre.toLowerCase()) {
-      case 'supermercado':
-        return 'cart-outline';
-      case 'restaurante':
-        return 'restaurant-outline';
-      case 'transporte':
-        return 'car-outline';
-      case 'ocio':
-        return 'film-outline';
-      case 'hogar':
-        return 'home-outline';
-      default:
-        return 'receipt-outline';
-    }
-  };
+  switch (nombre) {
+    case 'alimentación':
+      return 'fast-food-outline';
+    case 'transporte':
+      return 'car-outline';
+    case 'ocio':
+      return 'game-controller-outline';
+    case 'salud':
+      return 'medkit-outline';
+    case 'hogar':
+      return 'home-outline';
+    case 'educación':
+      return 'school-outline';
+    case 'ropa':
+      return 'shirt-outline';
+    case 'suscripciones':
+      return 'card-outline';
+    case 'otros':
+      return 'ellipsis-horizontal-outline';
+    default:
+      return 'help-circle-outline';
+  }
+};
+
 
   return (
     <ScrollView 
@@ -182,7 +198,7 @@ const HomeScreen = ({ navigation }: any) => {
               >
                 <View style={styles.listItemContent}>
                   <Icon 
-                    name={getIconByCategoria(gasto.categoria?.nombre || '')} 
+                    name={getIconByCategoria(categorias.find(c => c.id === gasto.categoriaId)?.nombre || 'otros')} 
                     size={24} 
                     color="#2563eb" 
                   />

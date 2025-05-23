@@ -4,8 +4,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Button,
   Pressable,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
 } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../api/urlConnection';
@@ -13,188 +16,486 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface Presupuesto {
-  id: number; // Cambiado de id_presupuesto a id
-  categoriaId: number; // Cambiado de categoria_id a categoriaId
-  categoriaNombre: string; // Cambiado de categoria_nombre a categoriaNombre
+  id: number;
+  categoriaId: number;
+  categoriaNombre: string;
   cantidad: number;
-  fechaInicio: string; // Cambiado de fecha_inicio a fechaInicio
-  fechaFin: string; // Cambiado de fecha_fin a fechaFin
+  fechaInicio: string;
+  fechaFin: string;
   gastado: number;
+  icono?: string;
 }
 
 const PresupuestosScreen = () => {
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const { token } = useAuth();
 
-    type NavigationProp = StackNavigationProp<RootStackParamList, 'Principal'>;
-    const navigation = useNavigation<NavigationProp>();
-  
-    useEffect(() => {
-    const fetchPresupuestos = async () => {
-      try {
-        const res = await axios.get(`${API_BASE_URL}/api/presupuestos`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  type NavigationProp = StackNavigationProp<RootStackParamList, 'MainApp'>;
+  const navigation = useNavigation<NavigationProp>();
 
-        const presupuestosConGastos = await Promise.all(
-          res.data.map(async (presupuesto: any) => {
-            const gastosRes = await axios.get(
-              `${API_BASE_URL}/api/gastos/categoria/${presupuesto.categoriaId}`, // Cambiado a categoriaId
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
+  const fetchPresupuestos = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_BASE_URL}/api/presupuestos`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const presupuestosConGastos = await Promise.all(
+        res.data.map(async (presupuesto: any) => {
+          const gastosRes = await axios.get(
+            `${API_BASE_URL}/api/gastos/categoria/${presupuesto.categoriaId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          const gastosEnRango = gastosRes.data.filter((g: any) => {
+            const fecha = new Date(g.fecha);
+            return (
+              fecha >= new Date(presupuesto.fechaInicio) &&
+              fecha <= new Date(presupuesto.fechaFin)
             );
+          });
 
-            const gastosEnRango = gastosRes.data.filter((g: any) => {
-              const fecha = new Date(g.fecha);
-              return (
-                fecha >= new Date(presupuesto.fechaInicio) && // Cambiado a fechaInicio
-                fecha <= new Date(presupuesto.fechaFin) // Cambiado a fechaFin
-              );
-            });
+          const totalGastado = gastosEnRango.reduce(
+            (sum: number, g: any) => sum + g.cantidad,
+            0
+          );
 
-            const totalGastado = gastosEnRango.reduce(
-              (sum: number, g: any) => sum + g.cantidad,
-              0
-            );
+          return {
+            ...presupuesto,
+            gastado: totalGastado,
+            icono: getIconByCategory(presupuesto.categoriaNombre)
+          };
+        })
+      );
 
-            return {
-              id: presupuesto.id, // Cambiado a id
-              categoriaId: presupuesto.categoriaId, // Cambiado a categoriaId
-              categoriaNombre: presupuesto.categoriaNombre || 'Sin categoría', // Cambiado a categoriaNombre
-              cantidad: presupuesto.cantidad,
-              fechaInicio: presupuesto.fechaInicio, // Cambiado a fechaInicio
-              fechaFin: presupuesto.fechaFin, // Cambiado a fechaFin
-              gastado: totalGastado,
-            };
-          })
-        );
+      setPresupuestos(presupuestosConGastos);
+    } catch (error) {
+      console.error('Error obteniendo presupuestos:', error);
+      Alert.alert('Error', 'No se pudieron cargar los presupuestos');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-        setPresupuestos(presupuestosConGastos);
-      } catch (error) {
-        console.error('Error obteniendo presupuestos:', error);
-      }
-    };
+  const getIconByCategory = (categoryName: string) => {
+    const name = categoryName.toLowerCase();
+    switch (name) {
+      case 'alimentación':
+        return 'fast-food-outline';
+      case 'transporte':
+        return 'car-outline';
+      case 'ocio':
+        return 'game-controller-outline';
+      case 'salud':
+        return 'medkit-outline';
+      case 'hogar':
+        return 'home-outline';
+      case 'educación':
+        return 'school-outline';
+      case 'ropa':
+        return 'shirt-outline';
+      case 'suscripciones':
+        return 'card-outline';
+      default:
+        return 'wallet-outline';
+    }
+  };
 
+  const handleDelete = async (id: number) => {
+    Alert.alert(
+      'Eliminar presupuesto',
+      '¿Estás seguro de que quieres eliminar este presupuesto?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axios.delete(`${API_BASE_URL}/api/presupuestos/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              fetchPresupuestos();
+              Alert.alert('Éxito', 'Presupuesto eliminado correctamente');
+            } catch (error) {
+              console.error('Error eliminando presupuesto:', error);
+              Alert.alert('Error', 'No se pudo eliminar el presupuesto');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    return format(parseISO(dateString), "dd MMM yyyy", { locale: es });
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
     fetchPresupuestos();
-  }, [token]);
+  };
+
+  useEffect(() => {
+    fetchPresupuestos();
+  }, []);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563eb" />
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Mis Presupuestos</Text>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          colors={['#2563eb']}
+        />
+      }
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Mis Presupuestos</Text>
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={() => navigation.navigate('AgregarPresupuestoScreen')}
+        >
+          <Icon name="add" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
 
-      {presupuestos.length === 0 && (
-        <Text style={styles.noData}>No tienes presupuestos creados.</Text>
-      )}
-
-      {presupuestos.map((presupuesto) => {
-        const porcentaje = Math.min(
-          (presupuesto.gastado / presupuesto.cantidad) * 100,
-          100
-        ).toFixed(0);
-
-        return (
-          <View key={presupuesto.id} style={styles.card}>
-            <Text style={styles.category}>
-              {presupuesto.categoriaNombre}
-            </Text>
-            <Text style={styles.amounts}>
-              {presupuesto.gastado} / {presupuesto.cantidad} €
-            </Text>
-            <View style={styles.progressBarBackground}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: (Number(porcentaje) / 100) * 200 }, // 200 is the assumed width of the progress bar background, adjust as needed
-                  +porcentaje >= 90 && { backgroundColor: '#dc2626' },
-                ]}
-              />
+      {presupuestos.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Icon name="wallet-outline" size={50} color="#cbd5e1" />
+          <Text style={styles.emptyText}>No tienes presupuestos</Text>
+          <Text style={styles.emptySubtext}>
+            Crea tu primer presupuesto para empezar a controlar tus gastos
+          </Text>
+          <Pressable
+            style={styles.button}
+            onPress={() => navigation.navigate('AgregarPresupuestoScreen')}
+          >
+            <Text style={styles.buttonText}>Crear Presupuesto</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Resumen</Text>
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Total presupuestado</Text>
+                <Text style={styles.summaryValue}>
+                  {presupuestos.reduce((sum, p) => sum + p.cantidad, 0).toFixed(2)}€
+                </Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Total gastado</Text>
+                <Text style={styles.summaryValue}>
+                  {presupuestos.reduce((sum, p) => sum + p.gastado, 0).toFixed(2)}€
+                </Text>
+              </View>
             </View>
-            <Text style={styles.percentage}>{porcentaje}% gastado</Text>
           </View>
-        );
-      })}
 
-      <Pressable
-        style={styles.button}
-        onPress={() => navigation.navigate('AgregarPresupuestoScreen')}
-      >
-        <Text style={styles.buttonText}>Agregar Presupuesto</Text>
-      </Pressable>
+          {presupuestos.map((presupuesto) => {
+            const porcentaje = Math.min(
+              (presupuesto.gastado / presupuesto.cantidad) * 100,
+              100
+            );
+            const restante = presupuesto.cantidad - presupuesto.gastado;
+            const isOverBudget = presupuesto.gastado > presupuesto.cantidad;
+
+            return (
+              <View key={presupuesto.id} style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.categoryContainer}>
+                    <Icon 
+                      name={presupuesto.icono || 'wallet-outline'} 
+                      size={24} 
+                      color="#2563eb" 
+                      style={styles.categoryIcon}
+                    />
+                    <Text style={styles.category}>
+                      {presupuesto.categoriaNombre}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleDelete(presupuesto.id)}>
+                    <Icon name="trash-outline" size={20} color="#dc2626" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.datesContainer}>
+                  <Text style={styles.dateText}>
+                    {formatDate(presupuesto.fechaInicio)} - {formatDate(presupuesto.fechaFin)}
+                  </Text>
+                </View>
+
+                <View style={styles.progressContainer}>
+                  <View style={styles.amountsRow}>
+                    <Text style={styles.amountGastado}>
+                      Gastado: {presupuesto.gastado.toFixed(2)}€
+                    </Text>
+                    <Text style={styles.amountPresupuestado}>
+                      Presupuesto: {presupuesto.cantidad.toFixed(2)}€
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.progressBarBackground}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        { 
+                          width: `${porcentaje}%`,
+                          backgroundColor: isOverBudget ? '#dc2626' : 
+                            porcentaje > 80 ? '#f59e0b' : '#2563eb'
+                        }
+                      ]}
+                    />
+                  </View>
+
+                  <View style={styles.progressInfo}>
+                    <Text style={[
+                      styles.percentage,
+                      isOverBudget && styles.percentageOver
+                    ]}>
+                      {porcentaje.toFixed(0)}%
+                    </Text>
+                    <Text style={styles.restante}>
+                      {isOverBudget ? (
+                        <Text style={styles.overBudget}>
+                          Excedido: {(presupuesto.gastado - presupuesto.cantidad).toFixed(2)}€
+                        </Text>
+                      ) : (
+                        `Restante: ${restante.toFixed(2)}€`
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.detailsButton}
+                  onPress={() => navigation.navigate('DetallePresupuestoScreen', { 
+                    presupuestoId: presupuesto.id 
+                  })}
+                >
+                  <Text style={styles.detailsButtonText}>Ver detalles</Text>
+                  <Icon name="chevron-forward" size={16} color="#2563eb" />
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </>
+      )}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    backgroundColor: '#f1f5f9',
     flex: 1,
+    backgroundColor: '#f8fafc',
+    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2563eb',
-    marginBottom: 15,
+    color: '#1e293b',
   },
-  noData: {
-    textAlign: 'center',
-    color: '#6b7280',
-    marginTop: 30,
-  },
-  card: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  category: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  amounts: {
-    marginBottom: 8,
-    color: '#374151',
-  },
-  progressBarBackground: {
-    backgroundColor: '#e5e7eb',
-    height: 10,
-    borderRadius: 5,
-    overflow: 'hidden',
-    width: 200,
-  },
-  progressBarFill: {
-    height: 10,
+  addButton: {
     backgroundColor: '#2563eb',
-    borderRadius: 5,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  percentage: {
-    marginTop: 5,
-    fontSize: 12,
-    color: '#6b7280',
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 30,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#64748b',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#94a3b8',
+    marginTop: 8,
+    textAlign: 'center',
+    marginBottom: 25,
   },
   button: {
     backgroundColor: '#2563eb',
     padding: 15,
     borderRadius: 10,
-    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
   },
   buttonText: {
-    textAlign: 'center',
     color: 'white',
     fontWeight: '600',
+    fontSize: 16,
+  },
+  summaryCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryItem: {
+    flex: 1,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginTop: 4,
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryIcon: {
+    marginRight: 10,
+  },
+  category: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  datesContainer: {
+    marginBottom: 16,
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  progressContainer: {
+    marginBottom: 12,
+  },
+  amountsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  amountGastado: {
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  amountPresupuestado: {
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: '600',
+  },
+  progressBarBackground: {
+    backgroundColor: '#e2e8f0',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  percentage: {
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: '600',
+  },
+  percentageOver: {
+    color: '#dc2626',
+  },
+  restante: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  overBudget: {
+    color: '#dc2626',
+  },
+  detailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    marginTop: 8,
+  },
+  detailsButtonText: {
+    color: '#2563eb',
+    fontWeight: '600',
+    marginRight: 5,
   },
 });
 

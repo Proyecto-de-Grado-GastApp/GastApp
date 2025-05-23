@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
-import { API_BASE_URL } from '../api/urlConnection';
-import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../../api/urlConnection';
+import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -28,12 +28,7 @@ export default function SubscriptionsScreen({ navigation }: any) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("TODOS LOS GASTOS:", res.data);
-
       const filtradas = res.data.filter((gasto: any) => gasto.categoriaId === 9);
-
-
-      console.log("SUSCRIPCIONES FILTRADAS:", filtradas); // <--- Y esto también
 
       const ordenadas = filtradas.sort(
         (a: any, b: any) =>
@@ -74,7 +69,10 @@ export default function SubscriptionsScreen({ navigation }: any) {
   const renderGastoItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.listItem}
-      onPress={() => navigation.navigate('DetalleGastoScreen', { gastoId: item.id })}
+      onPress={() => navigation.navigate('DetalleSuscripcionScreen', {
+        suscripcionId: item.id,
+        title: 'Detalle de Suscripción'
+      })}
     >
       <View style={styles.itemLeft}>
         <View style={[styles.categoriaIcon, { backgroundColor: '#0ea5e9' }]}>
@@ -148,13 +146,12 @@ export default function SubscriptionsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  // mismos estilos que en GastosScreen
   container: { flex: 1, padding: 16, backgroundColor: '#2563eb' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 24, fontWeight: 'bold', color: 'white' },
   summaryCard: {
-    backgroundColor: 'black',
+    backgroundColor: '#191919',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -170,7 +167,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'black',
+    backgroundColor: '#191919',
     padding: 16,
     borderRadius: 12,
     marginBottom: 10,

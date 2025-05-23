@@ -11,14 +11,14 @@ import {
   Platform
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
-import { API_BASE_URL } from '../api/urlConnection';
+import { API_BASE_URL } from '../../api/urlConnection';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import type { StackNavigationProp } from '@react-navigation/stack';
 
-import { suscripciones } from '../data/suscripcionesData';
+import { suscripciones } from '../../data/suscripcionesData';
 
 type RootStackParamList = {
   AgregarGasto: undefined;
@@ -55,8 +55,6 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
 
   
   const frecuencias: Frecuencia[] = [
-    { id: 'diaria', nombre: 'Diaria' },
-    { id: 'semanal', nombre: 'Semanal' },
     { id: 'mensual', nombre: 'Mensual' },
     { id: 'anual', nombre: 'Anual' },
   ]

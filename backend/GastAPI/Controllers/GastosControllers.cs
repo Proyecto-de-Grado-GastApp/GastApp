@@ -33,7 +33,7 @@ namespace GastAPI.Controllers
 
             // Filtrar gastos por usuario
             var gastos = await _context.Gastos
-                .Where(g => g.UsuarioId == userId) // Filtro crítico
+                .Where(g => g.UsuarioId == userId && g.Activo) // Filtro crítico
                 .Include(g => g.Etiquetas)
                 .Select(g => new GastoDto
                 {

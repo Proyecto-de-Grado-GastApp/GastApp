@@ -14,16 +14,19 @@ import MainAppContent from '../components/MainAppContent';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import AboutAppScreen from '../screens/AboutAppScreen'; 
 import SettingsScreen from '../screens/SettingsScreen';
-import GastosScreen from '../screens/GastosScreen';
-import AgregarGastoScreen from '../screens/AgregarGastoScreen';
+import GastosScreen from '../screens/gastos/GastosScreen';
+import AgregarGastoScreen from '../screens/gastos/AgregarGastoScreen';
 import AgregarPresupuestoScreen from '../screens/AgregarPresupuestoScreen';
 import PresupuestosScreen from '../screens/PresupuestosScreen';
-import AgregarSuscripcionesScreen from '../screens/AgregarSuscripcionesScreen';
+import AgregarSuscripcionesScreen from '../screens/suscripciones/AgregarSuscripcionesScreen';
 
-import DetalleGastoScreen from '../screens/DetalleGastoScreen';
-import SubscriptionsScreen from '../screens/SubscriptionsScreen';
-
+import DetalleGastoScreen from '../screens/gastos/DetalleGastoScreen';
+import SubscriptionsScreen from '../screens/suscripciones/SubscriptionsScreen';
+import EditarGastoScreen from '../screens/gastos/EditarGastoScreen';
+import EditarSuscripcionScreen from '../screens/suscripciones/EditarSuscripcionScreen';
 import { GastosProvider } from '../contexts/GastosContext';
+import DetalleSuscripcionScreen from '../screens/suscripciones/DetalleSuscripcionesScreen';
+import DetallePresupuestoScreen from '../screens/DetallePresupuestoScreen';
 
 // Tipos para las rutas
 // Stack para los grupos de pantallas
@@ -36,10 +39,27 @@ export type RootStackParamList = {
   AboutApp: undefined;
   EditProfile: undefined;
   AgregarGastoScreen: undefined;
-  AgregarPresupuestoScreen: undefined;
   AgregarSuscripcionesScreen: undefined;
   GastosScreen: undefined;
-  DetalleGastoScreen: { gastoId: number };
+  DetalleGastoScreen: { 
+    gastoId: number; 
+    title?: string; 
+  };
+  DetalleSuscripcionScreen: { 
+    suscripcionId: number; 
+    title?: string;
+  };
+  EditarGastoScreen: { 
+    gasto: any;
+    metodosPago: any[];
+    etiquetas: any[];
+    categorias: any[];
+  };
+  EditarSuscripcionScreen: {
+    suscripcion: any;
+  };
+  DetallePresupuestoScreen: { presupuestoId: number }; // Añade esta línea
+  AgregarPresupuestoScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -126,14 +146,18 @@ const AppNavigator = () => {
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="AboutApp" component={AboutAppScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
-            <Stack.Screen 
-              name="DetalleGastoScreen" 
-              component={DetalleGastoScreen} 
-              options={{ title: 'Detalle de Gasto'}}
-            />
+            <Stack.Screen name="DetalleGastoScreen" component={DetalleGastoScreen} />
+            <Stack.Screen name="EditarGastoScreen" component={EditarGastoScreen} />
+            <Stack.Screen name="EditarSuscripcionScreen" component={EditarSuscripcionScreen} />
             <Stack.Screen name="AgregarPresupuestoScreen" component={AgregarPresupuestoScreen}/>
             <Stack.Screen name="AgregarGastoScreen" component={AgregarGastoScreen} />
             <Stack.Screen name="AgregarSuscripcionesScreen" component={AgregarSuscripcionesScreen} />
+            <Stack.Screen name="DetalleSuscripcionScreen" component={DetalleSuscripcionScreen} />
+            <Stack.Screen 
+              name="DetallePresupuestoScreen" 
+              component={DetallePresupuestoScreen}
+              options={{ title: 'Detalle de Presupuesto' }}
+            />
           </>
         ) : (
           <>

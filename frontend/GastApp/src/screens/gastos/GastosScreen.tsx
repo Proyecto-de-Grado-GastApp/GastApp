@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
-import { API_BASE_URL } from '../api/urlConnection';
-import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../../api/urlConnection';
+import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -66,7 +66,10 @@ export default function GastosScreen({ navigation }: any) {
   const renderGastoItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.listItem}
-      onPress={() => navigation.navigate('DetalleGastoScreen', { gastoId: item.id })}
+      onPress={() => navigation.navigate('DetalleGastoScreen', {
+        gastoId: item.id,
+        title: 'Detalle del Gasto'
+      })}
     >
       <View style={styles.itemLeft}>
         <View style={[styles.categoriaIcon, { backgroundColor: getCategoriaColor(item.categoriaId) }]}>
