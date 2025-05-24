@@ -67,6 +67,7 @@ app.UseAuthorization();
 
 // Mapea tus controladores (CRUDs)
 // Aquí se activan los endpoints tipo /usuarios, etc.
-app.MapControllers(); 
+app.MapControllers();
+app.UseStaticFiles(); 
 
 app.Run();

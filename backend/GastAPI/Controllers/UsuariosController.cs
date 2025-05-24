@@ -208,6 +208,55 @@ namespace GastAPI.Controllers
             return Ok(new { message = "Perfil actualizado correctamente." });
         }
 
+        [HttpPost("upload-foto")]
+        [Authorize]
+        public async Task<IActionResult> SubirFotoPerfil(IFormFile imagen)
+        {   
+            if (imagen == null || imagen.Length == 0)
+                return BadRequest(new { message = "No se recibió ninguna imagen." });
+
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+
+            if (!long.TryParse(userIdClaim.Value, out var userId))
+                return Unauthorized();
+
+            var usuario = await _context.Usuarios.FindAsync(userId);
+            if (usuario == null) return NotFound();
+
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "perfiles");
+            if (!Directory.Exists(uploadsPath))
+                Directory.CreateDirectory(uploadsPath);
+
+            var extension = Path.GetExtension(imagen.FileName);
+            var fileName = $"perfil_{userId}{extension}";
+            var filePath = Path.Combine(uploadsPath, fileName);
+
+            // Elimina la imagen anterior si no es una de las preestablecidas (opcional)
+            if (!string.IsNullOrWhiteSpace(usuario.ImagenPerfil) &&
+                usuario.ImagenPerfil.Contains("/uploads/perfiles/"))
+            {
+                var nombreArchivoAnterior = Path.GetFileName(new Uri(usuario.ImagenPerfil).AbsolutePath);
+                var rutaAnterior = Path.Combine(uploadsPath, nombreArchivoAnterior);
+                if (System.IO.File.Exists(rutaAnterior))
+                    System.IO.File.Delete(rutaAnterior);
+            }
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await imagen.CopyToAsync(stream);
+            }
+
+            var baseUrl = _config["AppSettings:BaseUrl"];
+            var imageUrl = $"{baseUrl}/uploads/perfiles/{fileName}";
+
+            usuario.ImagenPerfil = imageUrl;
+            _context.Usuarios.Update(usuario);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { imagenPerfilUrl = imageUrl });
+        }
 
         private string HashPassword(string password)
         {

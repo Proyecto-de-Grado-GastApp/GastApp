@@ -82,6 +82,7 @@ android {
         applicationId "com.gastapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        missingDimensionStrategy 'react-native-image-crop-tools', 'crop-tools-default'
         versionCode 1
         versionName "1.0"
     }

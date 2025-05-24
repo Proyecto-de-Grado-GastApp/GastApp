@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,10 @@ import {
   Pressable,
   Alert,
   Button,
-  Modal
+  Modal,
+  Platform,
+  PermissionsAndroid,
+  Linking
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -17,6 +20,9 @@ import axios from 'axios';
 
 import { API_BASE_URL } from '../api/urlConnection';
 import LoadingScreen from '../components/LoadingScreen';
+
+import ImagePicker from 'react-native-image-crop-picker';
+
 
 // Tipo de datos del usuario
 type Usuario = {
@@ -53,6 +59,11 @@ const ProfileScreen = ({ navigation }: any) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>('');
 
+  const [imagenPersonalizada, setImagenPersonalizada] = useState<string | null>(null);
+  const [cropModalVisible, setCropModalVisible] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const cropViewRef = useRef<any>(null);
+
   const handleLogout = async () => {
     await logout();
   };
@@ -79,18 +90,143 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const handleSaveImage = async () => {
     try {
+      let imagenFinal = selectedImage;
+
+      if (imagenPersonalizada) {
+        const formData = new FormData();
+        formData.append('imagen', {
+          uri: imagenPersonalizada,
+          type: 'image/jpeg',
+          name: `perfil_${userData?.id}.jpg`,
+        });
+
+        const res = await axios.post(`${API_BASE_URL}/api/usuarios/upload-foto`, formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        imagenFinal = res.data.imagenPerfilUrl;
+      }
+
       await axios.put(`${API_BASE_URL}/api/usuarios/actualizar-perfil`, {
-        nombre: userData.nombre,
-        email: userData.email,
-        imagenPerfil: selectedImage
+        nombre: userData?.nombre,
+        email: userData?.email,
+        imagenPerfil: imagenFinal
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setUserData(prev => prev ? { ...prev, imagenPerfil: selectedImage } : prev);
+      setUserData(prev => prev ? { ...prev, imagenPerfil: imagenFinal } : prev);
       setModalVisible(false);
     } catch (error) {
       console.error("Error actualizando imagen de perfil:", error);
+    }
+  };
+
+  const requestStoragePermission = async () => {
+    if (Platform.OS !== 'android') return true;
+
+    try {
+      if (Platform.Version >= 33) {
+        const result = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+          {
+            title: "Permiso para medios",
+            message: "Necesitamos acceso a tus imágenes",
+            buttonPositive: "Aceptar",
+            buttonNegative: "Cancelar",
+            buttonNeutral: "Preguntar luego"
+          }
+        );
+        return result === PermissionsAndroid.RESULTS.GRANTED;
+      } else {
+        const result = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+          {
+            title: "Permiso para almacenamiento",
+            message: "Necesitamos acceso a tus archivos",
+            buttonPositive: "Aceptar",
+            buttonNegative: "Cancelar",
+            buttonNeutral: "Preguntar luego"
+          }
+        );
+        return result === PermissionsAndroid.RESULTS.GRANTED;
+      }
+    } catch (err) {
+      console.error("Error solicitando permisos:", err);
+      return false;
+    }
+  };
+
+  const handleSeleccionarImagenPersonalizada = async () => {
+    try {
+      // Paso 1: Verificar si ya tenemos permisos
+      let hasPermission = false;
+      
+      if (Platform.OS === 'android') {
+        if (Platform.Version >= 33) {
+          hasPermission = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+          );
+        } else {
+          hasPermission = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+          );
+        }
+      } else {
+        hasPermission = true;
+      }
+
+      // Paso 2: Si no tenemos permisos, solicitarlos
+      if (!hasPermission) {
+        hasPermission = await requestStoragePermission();
+      }
+
+      // Paso 3: Si aún no tenemos permisos, mostrar alerta
+      if (!hasPermission) {
+        Alert.alert(
+          'Permisos insuficientes',
+          'Por favor, habilita los permisos de almacenamiento en Configuración',
+          [
+            {
+              text: 'Abrir Configuración',
+              onPress: () => Linking.openSettings()
+            },
+            {
+              text: 'Cancelar',
+              style: 'cancel'
+            }
+          ]
+        );
+        return;
+      }
+
+      // Paso 4: Si tenemos permisos, proceder
+      const image = await ImagePicker.openPicker({
+        mediaType: 'photo',
+        width: 500,
+        height: 500,
+        cropping: false,
+        cropperCircleOverlay: true,
+        compressImageQuality: 0.8,
+        forceJpg: true,
+      });
+
+      setSelectedImage(image.path);
+      setImagenPersonalizada(image.path);
+
+    } catch (error) {
+      if (typeof error === 'object' && error !== null && 'message' in error && typeof (error as any).message === 'string') {
+        if (!(error as any).message.includes('User cancelled image selection')) {
+          console.error('Error al seleccionar imagen:', error);
+          Alert.alert('Error', 'Ocurrió un problema al acceder a la galería');
+        }
+      } else {
+        console.error('Error al seleccionar imagen:', error);
+        Alert.alert('Error', 'Ocurrió un problema al acceder a la galería');
+      }
     }
   };
 
@@ -136,9 +272,23 @@ const ProfileScreen = ({ navigation }: any) => {
       >
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Selecciona tu imagen de perfil</Text>
+          
+          <TouchableOpacity
+            style={styles.galleryButton}
+            onPress={handleSeleccionarImagenPersonalizada}
+          >
+            <Icon name="images-outline" size={18} color="white" style={{ marginRight: 6 }} />
+            <Text style={styles.galleryButtonText}>Seleccionar desde galería</Text>
+          </TouchableOpacity>
+          
+          <Text style={styles.sectionTitle}>O elige una de nuestras imágenes:</Text>
+          
           <View style={styles.imageGrid}>
             {imagenesDisponibles.map((img, idx) => (
-              <Pressable key={idx} onPress={() => setSelectedImage(img)}>
+              <Pressable key={idx} onPress={() => {
+                setSelectedImage(img);
+                setImagenPersonalizada(null);
+              }}>
                 <Image
                   source={{ uri: img }}
                   style={[
@@ -150,16 +300,26 @@ const ProfileScreen = ({ navigation }: any) => {
             ))}
           </View>
 
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveImage}>
-              <Text style={styles.saveButtonText}>Guardar imagen</Text>
-            </TouchableOpacity>
+          {selectedImage !== '' && (
+            <View style={styles.previewContainer}>
+              <Text style={styles.previewTitle}>Imágen actual:</Text>
+              <Image 
+                source={{ uri: selectedImage }} 
+                style={styles.previewImage} 
+              />
+            </View>
+          )}
 
+
+          <View style={styles.buttonGroup}>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveImage}>
+              <Text style={styles.saveButtonText}>Guardar cambios</Text>
+            </TouchableOpacity>
           </View>
-
         </View>
       </Modal>
     </View>
@@ -211,6 +371,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#f9fafb',
+    paddingBottom: Platform.select({
+      android: 40, 
+    }),
   },
   modalTitle: {
     fontSize: 22,
@@ -239,7 +402,11 @@ const styles = StyleSheet.create({
   buttonGroup: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    marginTop: 'auto',
+    marginBottom: Platform.select({
+      ios: 30,
+      android: 40,
+    }),
     gap: 10,
   },
   saveButton: {
@@ -272,10 +439,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   imageContainer: {
-      position: 'relative',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   profileImage: {
     width: 100,
     height: 100,
@@ -293,7 +460,45 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
   },
-
+  sectionTitle: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  previewContainer: {
+    marginVertical: 15,
+    alignItems: 'center',
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 10,
+    color: '#334155',
+  },
+  previewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: '#2563eb',
+  },
+  galleryButton: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    backgroundColor: '#2563eb',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  galleryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
 
 export default ProfileScreen;
+
