@@ -107,8 +107,11 @@ export default function SubscriptionsScreen({ navigation }: any) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Mis Suscripciones</Text>
-        <TouchableOpacity onPress={handleAgregarGasto}>
-          <Icon name="add-circle" size={30} color="#white" />
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={handleAgregarGasto}
+        >
+          <Icon name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
@@ -146,14 +149,40 @@ export default function SubscriptionsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#2563eb' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', color: 'black' },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f8fafc',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  addButton: {
+    backgroundColor: '#2563eb',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   summaryCard: {
-    backgroundColor: '#191919',
+    backgroundColor: 'white',
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -161,39 +190,97 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  summaryTitle: { fontSize: 16, color: 'white', marginBottom: 4 },
-  totalText: { fontSize: 28, fontWeight: 'bold', color: 'white' },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  totalText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#191919',
+    backgroundColor: 'white',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 10,
+    marginBottom: 16, // Ajustado de 10 a 16
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  itemLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  itemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   categoriaIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10, // Ajustado de 12 a 10
+    backgroundColor: '#2563eb',
   },
-  itemTextContainer: { flex: 1 },
-  listItemText: { fontSize: 16, fontWeight: '600', color: 'black', marginBottom: 2 },
-  fechaText: { fontSize: 14, color: 'black', marginBottom: 4 },
-  notaText: { fontSize: 13, color: 'black', fontStyle: 'italic' },
-  itemRight: { flexDirection: 'row', alignItems: 'center' },
-  montoText: { fontSize: 16, fontWeight: 'bold', color: '#2563eb', marginRight: 8 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyText: { fontSize: 18, color: '#94a3b8', marginVertical: 16, textAlign: 'center' },
-  emptyButton: { backgroundColor: '#89b5fa', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
-  emptyButtonText: { color: 'white', fontWeight: '600' },
+  itemTextContainer: {
+    flex: 1,
+  },
+  listItemText: {
+    fontSize: 18, // Ajustado de 16 a 18
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  fechaText: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  notaText: {
+    fontSize: 13,
+    color: '#64748b',
+    fontStyle: 'italic',
+  },
+  itemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  montoText: {
+    fontSize: 16,
+    fontWeight: '600', // Ajustado de 'bold' a '600'
+    color: '#2563eb',
+    marginRight: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 30,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#64748b',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  emptyButton: {
+    backgroundColor: '#2563eb',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 25,
+  },
+  emptyButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 });

@@ -10,6 +10,10 @@ import { API_BASE_URL } from '../../api/urlConnection';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import ImagePicker from 'react-native-image-crop-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
+
+import recognize from '@react-native-ml-kit/text-recognition';
 
 type RootStackParamList = {
   AgregarGasto: undefined;
@@ -40,7 +44,7 @@ interface Frecuencia {
 
 const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackParamList> }> = ({ navigation }) => {
   const { token } = useAuth();
-  // Estados para los datos del formulario
+//  Estados para los datos del formulario
   const [descripcion, setDescripcion] = useState('');
   const [cantidad, setCantidad] = useState('');
   const [fecha, setFecha] = useState(new Date());
@@ -53,7 +57,7 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
   const [notas, setNotas] = useState('');
   const [etiquetasSeleccionadas, setEtiquetasSeleccionadas] = useState<number[]>([]);
   
-  // Estados para los datos de selección
+//  Estados para los datos de selección
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
@@ -68,6 +72,181 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
     { id: 'mensual', nombre: 'Mensual' },
     { id: 'anual', nombre: 'Anual' },
   ];
+
+  type TicketData = {
+  supermercado: string;
+  total: number | null;
+  fecha: Date | null;
+  numeroTicket: string | null;
+  metodoPago: 'Tarjeta' | 'Efectivo' | null;
+  lineasProductos: string[];
+};
+
+const procesarTicket = (textoOCR: string): TicketData => {
+  console.log("=== TEXTO ORIGINAL DEL OCR ===");
+  console.log(textoOCR);
+  console.log("=============================");
+
+  const rawLines = textoOCR.split('\n');
+  // Limpiar líneas vacías y trim
+  const lines = rawLines.map(l => l.trim()).filter(l => l.length > 0);
+
+  // 1) Supermercado
+  let supermercado: TicketData['supermercado'] = 'Otro';
+  const marcas = [
+    { regex: /MERCADONA/i, nombre: 'Mercadona' },
+    { regex: /CARREFOUR/i, nombre: 'Carrefour' },
+    { regex: /DIA\b/i, nombre: 'DIA' },
+    // Añade aquí más marcas si lo necesitas
+  ];
+  for (const m of marcas) {
+    if (lines.some(l => m.regex.test(l))) {
+      supermercado = m.nombre;
+      break;
+    }
+  }
+  // Si no detectamos marca, tomamos la primera línea (opcional):
+  if (supermercado === 'Otro' && lines.length > 0) {
+    supermercado = lines[0].toUpperCase();
+  }
+
+  // 2) Fecha (y hora si existe)
+  let fecha: Date | null = null;
+  for (const l of lines) {
+    // Buscamos dd/mm/yyyy hh:mm o sólo dd/mm/yyyy
+    const m = l.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+    if (m) {
+      const [ , dd, mm, yyyy, hh = '00', mi = '00'] = m;
+      fecha = new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:00`);
+      break;
+    }
+  }
+
+  // 3) Número de ticket
+  let numeroTicket: string | null = null;
+  for (const l of lines) {
+    const m = l.match(/TICKET[:\s]*#?(\d+)/i);
+    if (m) {
+      numeroTicket = m[1];
+      break;
+    }
+  }
+
+  // 4) TOTAL (scan de abajo arriba)
+  let total: number | null = null;
+  let idxTotalLine = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i];
+    if (/^TOTAL\b/i.test(l)) {
+      idxTotalLine = i;
+      // (a) mismo renglón: “TOTAL 32,68”
+      const m1 = l.match(/^TOTAL[^\d]*([\d.,]+)/i);
+      if (m1) {
+        total = parseFloat(m1[1].replace(/\./g, '').replace(',', '.'));
+        break;
+      }
+      // (b) número en siguiente línea
+      if (i + 1 < lines.length) {
+        const m2 = lines[i+1].match(/^([\d.,]+)$/);
+        if (m2) {
+          total = parseFloat(m2[1].replace(/\./g, '').replace(',', '.'));
+          break;
+        }
+      }
+    }
+  }
+  // (c) Fallback: buscar última línea que contenga sólo un número con coma o punto dec.
+  if (total === null) {
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const m = lines[i].match(/^([\d]+\.\d{2}|[\d]+,\d{2})$/);
+      if (m) {
+        total = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
+        idxTotalLine = i;
+        break;
+      }
+    }
+  }
+
+  // 5) Método de pago: normalmente justo después del total
+  let metodoPago: TicketData['metodoPago'] = null;
+  for (let i = idxTotalLine + 1; i < lines.length; i++) {
+    const l = lines[i].toUpperCase();
+    if (/TARJETA/.test(l)) {
+      metodoPago = 'Tarjeta';
+      break;
+    }
+    if (/EFECTIVO/.test(l)) {
+      metodoPago = 'Efectivo';
+      break;
+    }
+  }
+
+  // 6) Líneas de productos (todo lo anterior a TOTAL)
+  const lineasProductos: string[] = [];
+  for (let i = 0; i < (idxTotalLine > 0 ? idxTotalLine : lines.length); i++) {
+    const l = lines[i];
+    // Detectamos líneas con: qty descripción precio_unitario precio_importe
+    if (/^\d+\s+.+\s+[\d,]+\s+[\d,]+$/.test(l)) {
+      lineasProductos.push(l);
+    }
+    // Detectamos peso: “0,154 kg 7,50 €/kg 1,16”
+    else if (/[\d,]+\s*kg\b.*€\/kg.*[\d,]+/.test(l)) {
+      lineasProductos.push(l);
+    }
+  }
+
+  // 7) Validar que total sea razonable
+  if (total !== null && (total < 0.1 || total > 100000)) {
+    total = null;
+  }
+
+  console.log("=== DATOS PROCESADOS ===");
+  console.log({ supermercado, fecha, numeroTicket, total, metodoPago, productos: lineasProductos.length });
+  console.log("=========================");
+
+  return {
+    supermercado,
+    fecha,
+    numeroTicket,
+    total,
+    metodoPago,
+    lineasProductos
+  };
+};
+
+  
+  const handleScanTicket = async () => {
+    try {
+      const image = await ImagePicker.openCamera({
+        cropping: false,
+        mediaType: 'photo',
+        compressImageQuality: 0.8,
+      });
+
+      const result = await recognize.recognize(image.path);
+      const datosTicket = procesarTicket(result.text);
+
+      // Actualizar estado con los datos
+      if (datosTicket.total) {
+        setCantidad(datosTicket.total.toString());
+      }
+
+      if (datosTicket.fecha) {
+        setFecha(datosTicket.fecha);
+      }
+
+      setDescripcion(`Compra en ${datosTicket.supermercado}`);
+      
+      Alert.alert(
+        '✅ Ticket procesado', 
+        `Supermercado: ${datosTicket.supermercado}\nTotal: ${datosTicket.total}€`
+      );
+
+    } catch (error) {
+      console.error('Error al escanear ticket:', error);
+      Alert.alert('Error', 'No se pudo procesar el ticket.');
+    }
+  };
 
   useEffect(() => {
     const cargarDatosIniciales = async () => {
@@ -95,6 +274,84 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
     if (token) cargarDatosIniciales();
   }, [token]);
 
+  const handleSeleccionarImagenYReconocerTexto = async () => {
+    try {
+        setIsLoading(true); // Activar indicador de carga
+        
+        const result = await launchImageLibrary({
+            mediaType: 'photo',
+            includeBase64: false,
+            quality: 0.8, // Mejor calidad para OCR
+        });
+
+        if (result.assets && result.assets.length > 0) {
+            const uri = result.assets[0].uri;
+
+            if (!uri) {
+                Alert.alert('Error', 'No se pudo obtener la imagen.');
+                return;
+            }
+
+            // OCR con la librería
+            const ocrResult = await recognize.recognize(uri);
+            const textoCompleto = ocrResult.text;
+
+            if (!textoCompleto || textoCompleto.length === 0) {
+                Alert.alert('Sin texto', 'No se pudo reconocer ningún texto en la imagen.');
+                return;
+            }
+
+            // Procesar el texto del ticket con nuestra función mejorada
+            const datosTicket = procesarTicket(textoCompleto);
+
+            // Actualizar el estado con los datos extraídos
+            if (datosTicket.total) {
+                setCantidad(datosTicket.total.toString());
+            }
+
+            if (datosTicket.fecha) {
+                setFecha(datosTicket.fecha);
+            }
+
+            if (datosTicket.supermercado) {
+                setDescripcion(`Compra en ${datosTicket.supermercado}`);
+            }
+
+            if (datosTicket.metodoPago) {
+                // Buscar si coincide con algún método de pago existente
+                const metodoExistente = datosTicket.metodoPago
+                    ? metodosPago.find(
+                        mp => mp.nombreMetodo.toLowerCase().includes(datosTicket.metodoPago!.toLowerCase())
+                    )
+                    : undefined;
+                if (metodoExistente) {
+                    setMetodoPagoId(metodoExistente.id);
+                }
+            }
+
+            // Mostrar resumen al usuario
+            Alert.alert(
+                'Ticket procesado',
+                `Supermercado: ${datosTicket.supermercado}\n` +
+                `Total: ${datosTicket.total ? datosTicket.total + '€' : 'No identificado'}\n` +
+                `Fecha: ${datosTicket.fecha ? formatDate(datosTicket.fecha) : 'No identificada'}\n` +
+                `Método pago: ${datosTicket.metodoPago || 'No identificado'}`
+            );
+
+            // Opcional: Mostrar datos en consola para depuración
+            console.log('Datos del ticket procesado:', datosTicket);
+        }
+    } catch (error) {
+        console.error('Error en el proceso OCR:', error);
+        Alert.alert(
+            'Error', 
+            error instanceof Error ? error.message : 'Ocurrió un error al procesar el ticket'
+        );
+    } finally {
+        setIsLoading(false); // Desactivar indicador de carga
+    }
+};
+
   const handleFechaChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     if (event.type === 'set' && selectedDate) {
@@ -111,7 +368,7 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
   };
 
   const handleGuardar = async () => {
-    // Validaciones
+  //  Validaciones
     if (!descripcion.trim()) {
       Alert.alert('Error', 'La descripción es obligatoria');
       return;
@@ -209,7 +466,19 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
           value={cantidad}
           onChangeText={text => setCantidad(text.replace(',', '.'))}
         />
-
+        <TouchableOpacity 
+          style={[styles.scanButton, { marginBottom: 15 }]}
+          onPress={handleScanTicket}
+        >
+          <Icon name="camera-outline" size={20} color="white" style={{ marginRight: 8 }} />
+          <Text style={styles.buttonText}>Escanear Ticket</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: '#10b981', marginBottom: 20 }]}
+          onPress={handleSeleccionarImagenYReconocerTexto}
+        >
+          <Text style={styles.buttonText}>Escanear imagen desde galería</Text>
+        </TouchableOpacity>
         <Text style={styles.label}>Fecha</Text>
         <TouchableOpacity 
           style={styles.input} 
@@ -546,6 +815,16 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  scanButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#10b981',
+  paddingVertical: 12,
+  borderRadius: 8,
+  marginTop: 5,
+},
+
 });
 
 export default AgregarGastoScreen;

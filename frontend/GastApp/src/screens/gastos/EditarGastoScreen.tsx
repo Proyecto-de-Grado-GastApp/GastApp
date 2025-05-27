@@ -13,11 +13,11 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
-  EditarGasto: { gastoId: number };
+  EditarGastoScreen: { gastoId: number };
   Home: undefined;
 };
 
-type EditarGastoRouteProp = RouteProp<RootStackParamList, 'EditarGasto'>;
+type EditarGastoRouteProp = RouteProp<RootStackParamList, 'EditarGastoScreen'>;
 
 interface Categoria {
   id: number;
@@ -116,8 +116,12 @@ const EditarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPar
         ]);
 
         const gastoData = gastoRes.data;
-        setGasto(gastoData);
+        console.log('Datos completos del gasto:', gastoData);
+        console.log('Frecuencia recibida:', gastoData.frecuencia);
+        console.log('Es frecuente?', gastoData.frecuencia > 0 && gastoData.frecuencia <= 4);
         
+        setGasto(gastoData);
+
         // Setear valores del gasto
         setDescripcion(gastoData.descripcion);
         setCantidad(gastoData.cantidad.toString());
@@ -128,10 +132,19 @@ const EditarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPar
         setEtiquetasSeleccionadas(gastoData.etiquetas || []);
         
         // Configurar frecuencia
-        if (gastoData.frecuencia > 0) {
+        const frecuenciaValida = gastoData.frecuencia && gastoData.frecuencia >= 1 && gastoData.frecuencia <= 4;
+        console.log('Frecuencia válida:', frecuenciaValida);
+        
+        if (frecuenciaValida) {
+          console.log('Marcando como gasto frecuente');
           setEsFrecuente(true);
           setFrecuencia(mapFrecuenciaInverso[gastoData.frecuencia] || 'mensual');
-          setNotificar(gastoData.notificar);
+          setNotificar(gastoData.notificar || false);
+        } else {
+          console.log('Marcando como gasto NO frecuente');
+          setEsFrecuente(false);
+          setFrecuencia('mensual');
+          setNotificar(false);
         }
 
         // Setear opciones

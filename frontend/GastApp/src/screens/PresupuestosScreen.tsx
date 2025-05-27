@@ -37,7 +37,7 @@ const PresupuestosScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const { token } = useAuth();
 
-  type NavigationProp = StackNavigationProp<RootStackParamList, 'MainApp'>;
+  type NavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
   const navigation = useNavigation<NavigationProp>();
 
   const fetchPresupuestos = async () => {
@@ -308,7 +308,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    padding: 16,
+    paddingHorizontal: 16, // Mantiene el padding lateral
+    paddingTop: 16,       // Mantiene el padding superior
+    paddingBottom: 80,    // Aumenta el padding inferior para dejar espacio a la tab bar (ajusta este valor según necesites, 70-100 suele funcionar bien)
   },
   loadingContainer: {
     flex: 1,
@@ -338,8 +340,9 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 60, // Este padding es para el contenido del emptyState en sí
     paddingHorizontal: 30,
+    // Si el emptyState es el único contenido, el paddingBottom del container principal le dará espacio.
   },
   emptyText: {
     fontSize: 18,

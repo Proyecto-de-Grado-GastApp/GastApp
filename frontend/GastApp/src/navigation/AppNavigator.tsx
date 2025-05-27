@@ -1,5 +1,5 @@
-import React from 'react';
-import { TouchableOpacity, View, Text } from 'react-native';
+import React ,{ useEffect, useState } from 'react';
+import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
@@ -27,6 +27,9 @@ import EditarSuscripcionScreen from '../screens/suscripciones/EditarSuscripcionS
 import { GastosProvider } from '../contexts/GastosContext';
 import DetalleSuscripcionScreen from '../screens/suscripciones/DetalleSuscripcionesScreen';
 import DetallePresupuestoScreen from '../screens/DetallePresupuestoScreen';
+
+import axios from 'axios';
+import { API_BASE_URL } from '../api/urlConnection';
 
 // Tipos para las rutas
 export type RootStackParamList = {
@@ -71,10 +74,35 @@ export type BottomTabParamList = {
   Suscripciones: undefined;
 };
 
+type Usuario = {
+  imagenPerfil: string;
+};
+
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 const MainTabs = () => {
   const navigation = useNavigation<any>();
+  const [userData, setUserData] = useState<Usuario | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string>('');
+  const { token } = useAuth();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/usuarios/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setUserData(res.data);
+        setSelectedImage(res.data.imagenPerfil);
+      } catch (error) {
+        console.error('Error obteniendo datos del usuario:', error);
+      }
+    };
+
+    if (token) fetchUserData();
+  }, [token]);
 
   return (
     <GastosProvider>
@@ -97,7 +125,19 @@ const MainTabs = () => {
             GastApp
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
-            <Icon name="person-outline" size={24} color="white" />
+            {userData?.imagenPerfil ? (
+              <Image 
+                source={{ 
+                  uri: userData.imagenPerfil.startsWith('http') 
+                    ? userData.imagenPerfil // Usa la URL directa si ya es completa
+                    : `${API_BASE_URL}${userData.imagenPerfil.startsWith('/') ? '' : '/'}${userData.imagenPerfil}`
+                }}
+                style={styles.avatar}
+                onError={(e) => console.log('Error cargando imagen:', e.nativeEvent.error)}
+              />
+            ) : (
+              <Icon name="person-outline" size={24} color="white" />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -177,7 +217,11 @@ const AppNavigator = () => {
             <Stack.Screen name="AboutApp" component={AboutAppScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="DetalleGastoScreen" component={DetalleGastoScreen} />
-            <Stack.Screen name="EditarGastoScreen" component={EditarGastoScreen} />
+            <Stack.Screen 
+              name="EditarGastoScreen" 
+              component={EditarGastoScreen} 
+              options={{ title: 'Editar Gasto' }}
+            />
             <Stack.Screen name="EditarSuscripcionScreen" component={EditarSuscripcionScreen} />
             <Stack.Screen name="AgregarPresupuestoScreen" component={AgregarPresupuestoScreen}/>
             <Stack.Screen name="AgregarGastoScreen" component={AgregarGastoScreen} />
@@ -199,5 +243,15 @@ const AppNavigator = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'white',
+  },
+});
 
 export default AppNavigator;
