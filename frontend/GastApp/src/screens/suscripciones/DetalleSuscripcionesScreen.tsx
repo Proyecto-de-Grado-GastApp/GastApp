@@ -187,7 +187,7 @@ const DetalleSuscripcionScreen = ({ route, navigation }: any) => {
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Plan:</Text>
             <Text style={styles.detailValue}>
-              {suscripcion.plan.nombre} (€{suscripcion.plan.precio.toFixed(2)})
+              {suscripcion.plan.nombre} ({suscripcion.plan.precio.toFixed(2)}€)
             </Text>
           </View>
         )}
@@ -195,7 +195,7 @@ const DetalleSuscripcionScreen = ({ route, navigation }: any) => {
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Precio:</Text>
           <Text style={[styles.detailValue, styles.amountText]}>
-            €{suscripcion.cantidad.toFixed(2)}
+            {suscripcion.cantidad.toFixed(2)}€
           </Text>
         </View>
         

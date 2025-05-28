@@ -20,6 +20,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+import { mostrarNotificacionPresupuestoCasiAgotado, mostrarNotificacionPresupuestoSuperado } from "../notifications/notifeeService";
+
 interface Presupuesto {
   id: number;
   categoriaId: number;
@@ -147,6 +149,28 @@ const PresupuestosScreen = () => {
   useEffect(() => {
     fetchPresupuestos();
   }, []);
+
+  useEffect(() => {
+  presupuestos.forEach((presupuesto) => {
+    const porcentaje = (presupuesto.gastado / presupuesto.cantidad) * 100;
+    const restante = presupuesto.cantidad - presupuesto.gastado;
+
+    if (porcentaje > 90 && porcentaje < 100) {
+      mostrarNotificacionPresupuestoCasiAgotado(
+        presupuesto.categoriaNombre,
+        presupuesto.cantidad,
+        restante
+      );
+    } else if (porcentaje >= 100) {
+      mostrarNotificacionPresupuestoSuperado(
+        presupuesto.categoriaNombre,
+        presupuesto.cantidad,
+        presupuesto.gastado - presupuesto.cantidad
+      );
+    }
+  });
+}, [presupuestos]);
+
 
   if (loading && !refreshing) {
     return (

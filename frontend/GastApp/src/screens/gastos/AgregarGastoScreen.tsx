@@ -15,6 +15,9 @@ import { launchImageLibrary } from 'react-native-image-picker';
 
 import recognize from '@react-native-ml-kit/text-recognition';
 
+import { mostrarNotificacionNuevoGasto } from '../../notifications/notifeeService';
+import notifee, { AndroidImportance } from '@notifee/react-native';
+
 type RootStackParamList = {
   AgregarGasto: undefined;
   Home: undefined;
@@ -249,6 +252,15 @@ const procesarTicket = (textoOCR: string): TicketData => {
   };
 
   useEffect(() => {
+    (async () => {
+      const settings = await notifee.requestPermission();
+      if (settings.authorizationStatus < 1) {
+        console.warn('Permiso para notificaciones denegado');
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     const cargarDatosIniciales = async () => {
       try {
         const [catRes, mpRes, etqRes] = await Promise.all([
@@ -415,8 +427,9 @@ const procesarTicket = (textoOCR: string): TicketData => {
         }
       });
 
+      await mostrarNotificacionNuevoGasto(descripcion, cantidadNum);
       Alert.alert('Éxito', 'Gasto creado correctamente');
-      navigation.goBack();
+      setTimeout(() => navigation.goBack(), 500);
     } catch (error: any) {
       let errorMessage = 'Error al crear el gasto';
       if (error.response?.data?.errors) {
@@ -436,245 +449,245 @@ const procesarTicket = (textoOCR: string): TicketData => {
     });
   };
 
-  if (cargandoDatos) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text>Cargando datos iniciales...</Text>
-      </View>
-    );
-  }
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Nuevo Gasto</Text>
-        
-        <Text style={styles.label}>Descripción *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ej: Compra supermercado"
-          value={descripcion}
-          onChangeText={setDescripcion}
-        />
-
-        <Text style={styles.label}>Cantidad (€) *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="0.00"
-          keyboardType="decimal-pad"
-          value={cantidad}
-          onChangeText={text => setCantidad(text.replace(',', '.'))}
-        />
-        <TouchableOpacity 
-          style={[styles.scanButton, { marginBottom: 15 }]}
-          onPress={handleScanTicket}
-        >
-          <Icon name="camera-outline" size={20} color="white" style={{ marginRight: 8 }} />
-          <Text style={styles.buttonText}>Escanear Ticket</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.button, { backgroundColor: '#10b981', marginBottom: 20 }]}
-          onPress={handleSeleccionarImagenYReconocerTexto}
-        >
-          <Text style={styles.buttonText}>Escanear imagen desde galería</Text>
-        </TouchableOpacity>
-        <Text style={styles.label}>Fecha</Text>
-        <TouchableOpacity 
-          style={styles.input} 
-          onPress={() => Platform.OS === 'android' && setShowDatePicker(true)}
-        > 
-          <Text>{formatDate(fecha)}</Text>
-          {Platform.OS === 'ios' && <Icon name="calendar" size={20} color="#666" />}
-        </TouchableOpacity>
-
-        {(showDatePicker || Platform.OS === 'ios') && (
-          <DateTimePicker
-            value={fecha}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'default' : 'calendar'}
-            onChange={handleFechaChange}
+      {cargandoDatos ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563eb" />
+            <Text>Cargando datos iniciales...</Text>
+        </View>
+      ) : (
+        <>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Nuevo Gasto</Text>
+          
+          <Text style={styles.label}>Descripción *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: Compra supermercado"
+            value={descripcion}
+            onChangeText={setDescripcion}
           />
-        )}
 
-        <Text style={styles.label}>Categoría *</Text>
-        <View style={styles.categoriesContainer}>
-          {categorias.map(cat => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryButton,
-                categoriaId === cat.id && styles.categoryButtonSelected
-              ]}
-              onPress={() => setCategoriaId(cat.id)}
-            >
-              <Text style={[
-                styles.categoryText,
-                categoriaId === cat.id && styles.categoryTextSelected
-              ]}>
-                {cat.nombre}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Método de Pago</Text>
-        <View style={styles.categoriesContainer}>
-          {metodosPago.map(mp => (
-            <TouchableOpacity
-              key={mp.id}
-              style={[
-                styles.categoryButton,
-                metodoPagoId === mp.id && styles.categoryButtonSelected
-              ]}
-              onPress={() => setMetodoPagoId(mp.id)}
-            >
-              <Text style={[
-                styles.categoryText,
-                metodoPagoId === mp.id && styles.categoryTextSelected
-              ]}>
-                {mp.nombreMetodo} {/* Cambiado de mp.nombre a mp.nombreMetodo */}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Etiquetas</Text>
-        <TouchableOpacity 
-          style={styles.input}
-          onPress={() => setShowEtiquetasModal(true)}
-        >
-          <Text>
-            {etiquetasSeleccionadas.length > 0 
-              ? `${etiquetasSeleccionadas.length} seleccionadas` 
-              : 'Seleccionar etiquetas'}
-          </Text>
-          <Icon name="chevron-down" size={20} color="#666" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Sección de gasto frecuente */}
-      <View style={styles.section}>
-        <View style={styles.switchContainer}>
-          <Text style={styles.label}>¿Es un gasto frecuente?</Text>
-          <Switch
-            value={esFrecuente}
-            onValueChange={setEsFrecuente}
-            trackColor={{ false: '#767577', true: '#2563eb' }}
+          <Text style={styles.label}>Cantidad (€) *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="0.00"
+            keyboardType="decimal-pad"
+            value={cantidad}
+            onChangeText={text => setCantidad(text.replace(',', '.'))}
           />
-        </View>
-
-        {esFrecuente && (
-          <>
-            <Text style={styles.label}>Frecuencia</Text>
-            <TouchableOpacity 
-              style={styles.input} 
-              onPress={() => setShowFrecuenciaModal(true)}
-            >
-              <Text>{frecuencias.find(f => f.id === frecuencia)?.nombre}</Text>
-              <Icon name="chevron-down" size={20} color="#666" />
-            </TouchableOpacity>
-
-            <View style={styles.switchContainer}>
-              <Text style={styles.label}>¿Notificar próximo pago?</Text>
-              <Switch
-                value={notificar}
-                onValueChange={setNotificar}
-                trackColor={{ false: '#767577', true: '#2563eb' }}
-              />
-            </View>
-          </>
-        )}
-      </View>
-
-      {/* Sección de notas */}
-      <View style={styles.section}>
-        <Text style={styles.label}>Notas adicionales</Text>
-        <TextInput
-          style={[styles.input, { height: 80 }]}
-          placeholder="Agrega detalles adicionales"
-          value={notas}
-          onChangeText={setNotas}
-          multiline
-        />
-      </View>
-
-      {/* Botón de guardar */}
-      <TouchableOpacity 
-        style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={handleGuardar}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text style={styles.buttonText}>Guardar Gasto</Text>
-        )}
-      </TouchableOpacity>
-
-      {/* Modal de frecuencia */}
-      <Modal
-        visible={showFrecuenciaModal}
-        transparent
-        animationType="slide"
-      >
-        <TouchableWithoutFeedback onPress={() => setShowFrecuenciaModal(false)}>
-          <View style={styles.modalOverlay} />
-        </TouchableWithoutFeedback>
-        
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Seleccionar Frecuencia</Text>
-          {frecuencias.map(freq => (
-            <TouchableOpacity
-              key={freq.id}
-              style={styles.modalOption}
-              onPress={() => {
-                setFrecuencia(freq.id);
-                setShowFrecuenciaModal(false);
-              }}
-            >
-              <Text>{freq.nombre}</Text>
-              {frecuencia === freq.id && <Icon name="checkmark" size={20} color="#2563eb" />}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </Modal>
-
-      {/* Modal de etiquetas */}
-      <Modal
-        visible={showEtiquetasModal}
-        transparent
-        animationType="slide"
-      >
-        <TouchableWithoutFeedback onPress={() => setShowEtiquetasModal(false)}>
-          <View style={styles.modalOverlay} />
-        </TouchableWithoutFeedback>
-        
-        <View style={[styles.modalContent, { maxHeight: '70%' }]}>
-          <Text style={styles.modalTitle}>Seleccionar Etiquetas</Text>
-          <FlatList
-            data={etiquetas}
-            keyExtractor={item => item.id.toString()}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.modalOption}
-                onPress={() => toggleEtiqueta(item.id)}
-              >
-                <Text>{item.nombre}</Text>
-                {etiquetasSeleccionadas.includes(item.id) && (
-                  <Icon name="checkmark" size={20} color="#2563eb" />
-                )}
-              </TouchableOpacity>
-            )}
-          />
-          <TouchableOpacity
-            style={styles.modalCloseButton}
-            onPress={() => setShowEtiquetasModal(false)}
+          <TouchableOpacity 
+            style={[styles.scanButton, { marginBottom: 15 }]}
+            onPress={handleScanTicket}
           >
-            <Text style={styles.modalCloseButtonText}>Aceptar</Text>
+            <Icon name="camera-outline" size={20} color="white" style={{ marginRight: 8 }} />
+            <Text style={styles.buttonText}>Escanear Ticket</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.button, { backgroundColor: '#10b981', marginBottom: 20 }]}
+            onPress={handleSeleccionarImagenYReconocerTexto}
+          >
+            <Text style={styles.buttonText}>Escanear imagen desde galería</Text>
+          </TouchableOpacity>
+          <Text style={styles.label}>Fecha</Text>
+          <TouchableOpacity 
+            style={styles.input} 
+            onPress={() => Platform.OS === 'android' && setShowDatePicker(true)}
+          > 
+            <Text>{formatDate(fecha)}</Text>
+            {Platform.OS === 'ios' && <Icon name="calendar" size={20} color="#666" />}
+          </TouchableOpacity>
+
+          {(showDatePicker || Platform.OS === 'ios') && (
+            <DateTimePicker
+              value={fecha}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'default' : 'calendar'}
+              onChange={handleFechaChange}
+            />
+          )}
+
+          <Text style={styles.label}>Categoría *</Text>
+          <View style={styles.categoriesContainer}>
+            {categorias.map(cat => (
+              <TouchableOpacity
+                key={cat.id}
+                style={[
+                  styles.categoryButton,
+                  categoriaId === cat.id && styles.categoryButtonSelected
+                ]}
+                onPress={() => setCategoriaId(cat.id)}
+              >
+                <Text style={[
+                  styles.categoryText,
+                  categoriaId === cat.id && styles.categoryTextSelected
+                ]}>
+                  {cat.nombre}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.label}>Método de Pago</Text>
+          <View style={styles.categoriesContainer}>
+            {metodosPago.map(mp => (
+              <TouchableOpacity
+                key={mp.id}
+                style={[
+                  styles.categoryButton,
+                  metodoPagoId === mp.id && styles.categoryButtonSelected
+                ]}
+                onPress={() => setMetodoPagoId(mp.id)}
+              >
+                <Text style={[
+                  styles.categoryText,
+                  metodoPagoId === mp.id && styles.categoryTextSelected
+                ]}>
+                  {mp.nombreMetodo} {/* Cambiado de mp.nombre a mp.nombreMetodo */}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.label}>Etiquetas</Text>
+          <TouchableOpacity 
+            style={styles.input}
+            onPress={() => setShowEtiquetasModal(true)}
+          >
+            <Text>
+              {etiquetasSeleccionadas.length > 0 
+                ? `${etiquetasSeleccionadas.length} seleccionadas` 
+                : 'Seleccionar etiquetas'}
+            </Text>
+            <Icon name="chevron-down" size={20} color="#666" />
           </TouchableOpacity>
         </View>
-      </Modal>
+
+        {/* Sección de gasto frecuente */}
+        <View style={styles.section}>
+          <View style={styles.switchContainer}>
+            <Text style={styles.label}>¿Es un gasto frecuente?</Text>
+            <Switch
+              value={esFrecuente}
+              onValueChange={setEsFrecuente}
+              trackColor={{ false: '#767577', true: '#2563eb' }}
+            />
+          </View>
+
+          {esFrecuente && (
+            <>
+              <Text style={styles.label}>Frecuencia</Text>
+              <TouchableOpacity 
+                style={styles.input} 
+                onPress={() => setShowFrecuenciaModal(true)}
+              >
+                <Text>{frecuencias.find(f => f.id === frecuencia)?.nombre}</Text>
+                <Icon name="chevron-down" size={20} color="#666" />
+              </TouchableOpacity>
+
+              <View style={styles.switchContainer}>
+                <Text style={styles.label}>¿Notificar próximo pago?</Text>
+                <Switch
+                  value={notificar}
+                  onValueChange={setNotificar}
+                  trackColor={{ false: '#767577', true: '#2563eb' }}
+                />
+              </View>
+            </>
+          )}
+        </View>
+
+        {/* Sección de notas */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Notas adicionales</Text>
+          <TextInput
+            style={[styles.input, { height: 80 }]}
+            placeholder="Agrega detalles adicionales"
+            value={notas}
+            onChangeText={setNotas}
+            multiline
+          />
+        </View>
+
+        {/* Botón de guardar */}
+        <TouchableOpacity 
+          style={[styles.button, isLoading && styles.buttonDisabled]}
+          onPress={handleGuardar}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>Guardar Gasto</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Modal de frecuencia */}
+        <Modal
+          visible={showFrecuenciaModal}
+          transparent
+          animationType="slide"
+        >
+          <TouchableWithoutFeedback onPress={() => setShowFrecuenciaModal(false)}>
+            <View style={styles.modalOverlay} />
+          </TouchableWithoutFeedback>
+          
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Seleccionar Frecuencia</Text>
+            {frecuencias.map(freq => (
+              <TouchableOpacity
+                key={freq.id}
+                style={styles.modalOption}
+                onPress={() => {
+                  setFrecuencia(freq.id);
+                  setShowFrecuenciaModal(false);
+                }}
+              >
+                <Text>{freq.nombre}</Text>
+                {frecuencia === freq.id && <Icon name="checkmark" size={20} color="#2563eb" />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Modal>
+
+        {/* Modal de etiquetas */}
+        <Modal
+          visible={showEtiquetasModal}
+          transparent
+          animationType="slide"
+        >
+          <TouchableWithoutFeedback onPress={() => setShowEtiquetasModal(false)}>
+            <View style={styles.modalOverlay} />
+          </TouchableWithoutFeedback>
+          
+          <View style={[styles.modalContent, { maxHeight: '70%' }]}>
+            <Text style={styles.modalTitle}>Seleccionar Etiquetas</Text>
+            <FlatList
+              data={etiquetas}
+              keyExtractor={item => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={() => toggleEtiqueta(item.id)}
+                >
+                  <Text>{item.nombre}</Text>
+                  {etiquetasSeleccionadas.includes(item.id) && (
+                    <Icon name="checkmark" size={20} color="#2563eb" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowEtiquetasModal(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Aceptar</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+      </>
+      )}  
     </ScrollView>
   );
 };

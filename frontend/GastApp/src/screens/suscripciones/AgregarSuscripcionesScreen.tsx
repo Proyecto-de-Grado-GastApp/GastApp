@@ -15,10 +15,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import { API_BASE_URL } from '../../api/urlConnection';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 import { suscripciones } from '../../data/suscripcionesData';
+import { mostrarNotificacionNuevaSuscripcion } from '../../notifications/notifeeService';
 
 type RootStackParamList = {
   AgregarGasto: undefined;
@@ -73,17 +75,26 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
   // Cuando cambia el plan seleccionado, actualizamos descripción y cantidad
   useEffect(() => {
     if (!planSeleccionado) return;
-    const suscripcionObj = suscripciones.find(s => s.nombre === suscripcionSeleccionada);
+    const suscripcionObj = suscripciones.find(suscripcion => suscripcion.nombre === suscripcionSeleccionada);
     if (!suscripcionObj) return;
 
     const planNombrePrecio = planSeleccionado.split(' - ');
     const planNombre = planNombrePrecio[0];
-    const planObj = suscripcionObj.planes.find(p => p.nombre === planNombre);
+    const planObj = suscripcionObj.planes.find(plan => plan.nombre === planNombre);
     if (planObj) {
       setDescripcion(suscripcionObj.nombre);
       setCantidad(planObj.precio.toFixed(2));
     }
   }, [planSeleccionado]);
+
+  useEffect(() => {
+      (async () => {
+        const settings = await notifee.requestPermission();
+        if (settings.authorizationStatus < 1) {
+          console.warn('Permiso para notificaciones denegado');
+        }
+      })();
+    }, []);
 
   const handleFechaChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || fecha;
@@ -139,8 +150,9 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
         }
       });
 
+      await mostrarNotificacionNuevaSuscripcion(descripcion, cantidadNum);
       Alert.alert('Éxito', 'Suscripción guardada correctamente');
-      navigation.goBack();
+      setTimeout(() => navigation.goBack(), 500);
     } catch (error) {
       let errorMessage = 'Error al guardar la suscripción';
       if (axios.isAxiosError(error)) {
@@ -238,7 +250,7 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
             <Switch
               value={true}
               disabled={true}
-              trackColor={{ false: '#767577', true: '#2563eb' }}
+              trackColor={{ true: '#2563eb' }}
             />
           </View>
         </View>
