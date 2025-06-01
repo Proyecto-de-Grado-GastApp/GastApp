@@ -33,6 +33,7 @@ import { API_BASE_URL } from '../api/urlConnection';
 
 // Tipos para las rutas
 export type RootStackParamList = {
+  MainApp: undefined;
   Login: undefined;
   Register: undefined;
   MainTabs: undefined;

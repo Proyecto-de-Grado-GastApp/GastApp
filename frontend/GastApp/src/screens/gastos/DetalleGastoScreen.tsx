@@ -279,7 +279,7 @@ const DetalleGastoScreen = ({ route, navigation }: any) => {
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Cantidad:</Text>
             <Text style={[styles.detailValue, styles.amountText]}>
-              €{gasto.cantidad.toFixed(2)}
+              {gasto.cantidad.toFixed(2)}€
             </Text>
           </View>
           <View style={styles.detailRow}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback  } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,20 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
+import { Picker } from "@react-native-picker/picker";
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 import { API_BASE_URL } from '../../api/urlConnection';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import globalStyles from '../../styles/index';
+
+// Para que se actualice automaticamente la pestaña cuando se crea un gasto
+import { useFocusEffect } from '@react-navigation/native';
+
 
 export default function GastosScreen({ navigation }: any) {
   const { token } = useAuth();
@@ -21,6 +27,9 @@ export default function GastosScreen({ navigation }: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filtroCategoria, setFiltroCategoria] = useState('');
+  const [gastosFiltrados, setGastosFiltrados] = useState<any[]>([]);
+
 
   const fetchGastos = async () => {
     try {
@@ -28,7 +37,10 @@ export default function GastosScreen({ navigation }: any) {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const gastosOrdenados = res.data.sort((a: any, b: any) => 
+      const filtradas = res.data.filter((gasto: any) => gasto.categoriaId !== 9);
+
+
+      const gastosOrdenados = filtradas.sort((a: any, b: any) => 
         new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
       );
 
@@ -46,9 +58,11 @@ export default function GastosScreen({ navigation }: any) {
     }
   };
 
-  useEffect(() => {
-    fetchGastos();
-  }, [token]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchGastos();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -63,6 +77,15 @@ export default function GastosScreen({ navigation }: any) {
     return format(new Date(fechaString), "dd MMM yyyy", { locale: es });
   };
 
+  useEffect(() => {
+    if (filtroCategoria === '') {
+      setGastosFiltrados(gastos);
+    } else {
+      const filtrados = gastos.filter(g => g.categoriaId.toString() === filtroCategoria);
+      setGastosFiltrados(filtrados);
+    }
+  }, [filtroCategoria, gastos]);
+
   const renderGastoItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.listItem}
@@ -75,7 +98,7 @@ export default function GastosScreen({ navigation }: any) {
         <View style={[styles.categoriaIcon, { backgroundColor: getCategoriaColor(item.categoriaId) }]}>
           <Icon 
             name={getCategoriaIcon(item.categoriaId)} 
-            size={20} 
+            size={24} 
             color="white" 
           />
         </View>
@@ -90,7 +113,7 @@ export default function GastosScreen({ navigation }: any) {
         </View>
       </View>
       <View style={styles.itemRight}>
-        <Text style={styles.montoText}>€{item.cantidad.toFixed(2)}</Text>
+        <Text style={styles.montoText}>{item.cantidad.toFixed(2)}€</Text>
         <Icon name="chevron-forward" size={20} color="#999" />
       </View>
     </TouchableOpacity>
@@ -108,20 +131,39 @@ export default function GastosScreen({ navigation }: any) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Mis Gastos</Text>
-        <TouchableOpacity onPress={handleAgregarGasto}>
-          <Icon name="add-circle" size={30} color="#2563eb" />
+        <TouchableOpacity onPress={handleAgregarGasto} style={styles.addButton}>
+          <Icon name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
       {/* Resumen */}
       <View style={styles.summaryCard}>
         <Text style={styles.summaryTitle}>Total del período</Text>
-        <Text style={styles.totalText}>€{total.toFixed(2)}</Text>
+        <Text style={styles.totalText}>{total.toFixed(2)}€</Text>
       </View>
+
+      <View style={styles.pickerCard}>
+        <Text style={styles.pickerText}>Filtrar por categoría</Text>
+        <Picker
+          selectedValue={filtroCategoria}
+          onValueChange={(valor) => setFiltroCategoria(valor)}
+          style={{ backgroundColor: 'white', borderRadius: 8 }}
+        >
+          <Picker.Item label="-- Todas --" value="" />
+          <Picker.Item label="Alimentación" value="1" />
+          <Picker.Item label="Transporte" value="2" />
+          <Picker.Item label="Salud" value="3" />
+          <Picker.Item label="Hogar" value="5" />
+          <Picker.Item label="Ocio" value="6" />
+          <Picker.Item label="Educación" value="8" />
+          <Picker.Item label="Otros" value="10" />
+        </Picker>
+      </View>
+
 
       {/* Lista de gastos */}
       <FlatList
-        data={gastos}
+        data={gastosFiltrados}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderGastoItem}
         refreshControl={
@@ -154,10 +196,11 @@ const getCategoriaColor = (id: number) => {
     1: '#ef4444', // Comida
     2: '#3b82f6', // Transporte
     3: '#10b981', // Hogar
-    4: '#f59e0b', // Ocio
     5: '#8b5cf6', // Salud
-    6: '#ec4899', // Educación
-    7: '#64748b'  // Otros
+    6: '#f59e0b', // Ocio
+    8: '#ec4899', // Educación
+    10: '#64748b'  // Otros
+
   };
   return colors[id] || '#64748b';
 };
@@ -166,11 +209,11 @@ const getCategoriaIcon = (id: number) => {
   const icons: { [key: number]: string } = {
     1: 'fast-food-outline',
     2: 'car-outline',
-    3: 'home-outline',
-    4: 'game-controller-outline',
-    5: 'medkit-outline',
-    6: 'school-outline',
-    7: 'ellipsis-horizontal-outline'
+    5: 'home-outline',
+    6: 'game-controller-outline',
+    3: 'medkit-outline',
+    8: 'school-outline',
+    10: 'ellipsis-horizontal-outline'
   };
   return icons[id] || 'ellipsis-horizontal-outline';
 };
@@ -196,6 +239,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1e293b',
+  },
+  addButton: {
+    backgroundColor: '#2563eb',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   summaryCard: {
     backgroundColor: 'white',
@@ -238,12 +289,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoriaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    ...globalStyles.categoriaIcon
   },
   itemTextContainer: {
     flex: 1,
@@ -296,4 +342,21 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
   },
+  pickerText: {
+    fontSize: 16,
+    marginBottom: 4,
+    color: "#64748b"
+  },
+  pickerCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  }
 });

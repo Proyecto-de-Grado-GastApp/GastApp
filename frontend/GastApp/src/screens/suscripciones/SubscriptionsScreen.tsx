@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Image
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
@@ -14,6 +15,10 @@ import { API_BASE_URL } from '../../api/urlConnection';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import globalStyles from '../../styles/index';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+
+
 
 export default function SubscriptionsScreen({ navigation }: any) {
   const { token } = useAuth();
@@ -75,8 +80,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
       })}
     >
       <View style={styles.itemLeft}>
-        <View style={[styles.categoriaIcon, { backgroundColor: '#0ea5e9' }]}>
-          <Icon name="repeat-outline" size={20} color="white" />
+        <View style={[styles.categoriaIcon]}>
+          {renderIcon(item.descripcion)}
         </View>
         <View style={styles.itemTextContainer}>
           <Text style={styles.listItemText}>{item.descripcion}</Text>
@@ -147,6 +152,68 @@ export default function SubscriptionsScreen({ navigation }: any) {
     </View>
   );
 }
+
+// const getCategoriaIcon = (descripcion: string) => {
+//   const key = descripcion.toLowerCase().trim();
+//   const icons: { [key: string]: string } = {
+//     spotify: 'spotify',
+//     netflix: 'netflix',
+//     strava: 'strava',
+//     youtube: 'youtube',
+//     hbo: 'tv',
+//     prime: 'amazon',
+//     disney: 'film',
+//   };
+//   return icons[key] || 'apps';
+// };
+
+const renderIcon = (descripcion: string) => {
+  const key = descripcion.toLowerCase().trim();
+
+  if (key === 'netflix') {
+    return (
+      <Image
+        source={require('../../images/netflix.png')}
+        style={{ width: 24, height: 24, resizeMode: 'contain', tintColor: '#E50914' }}
+      />
+    );
+  }
+
+  const icons: { [key: string]: string } = {
+    spotify: 'spotify',
+    strava: 'strava',
+    youtube: 'youtube',
+    hbo: 'tv',
+    prime: 'amazon',
+    disney: 'magic',
+  };
+
+  const iconName = icons[key] || 'apps';
+
+  return (
+    <FontAwesome5
+      name={iconName}
+      size={30}
+      color={getColorMarca(descripcion)}
+      solid
+    />
+  );
+};
+
+const getColorMarca = (descripcion: string) => {
+  const key = descripcion.toLowerCase();
+  const colors: { [key: string]: string } = {
+    spotify: '#1DB954',   // Verde de Spotify
+    netflix: '#E50914',   // Rojo de Netflix
+    strava: '#FC4C02',    // Naranja de Strava
+    youtube: '#FF0000',   // Rojo de YouTube
+    hbo: '#4B0082',       // Azul oscuro de HBO (ejemplo)
+    prime: '#00A8E1',     // Azul de Amazon Prime
+    disney: '#113CCF',    // Azul de Disney+
+    default: '#64748b',   // Gris por defecto
+  };
+  return colors[key] || colors['default'];
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -221,13 +288,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoriaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10, // Ajustado de 12 a 10
-    backgroundColor: '#2563eb',
+    ...globalStyles.categoriaIcon
   },
   itemTextContainer: {
     flex: 1,
