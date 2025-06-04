@@ -1,1 +1,34 @@
 ﻿Scrapping/node_modules
+# Archivos compilados y caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+.venv/
+venv/
+ENV/
+
+# Archivos de IDE y SO
+.vscode/
+.idea/
+*.DS_Store
+
+# Archivos grandes de datos y modelos
+ocr_finetuning/
+ocr_finetuning/data/images/
+ocr_finetuning/data/processed_hf_dataset/
+ocr_finetuning/fine_tuned_model/
+ocr_finetuning/training_output/
+ocr_microservice/app/models/
+ocr_microservice/
+*.safetensors
+*.pt
+*.pth
+*.arrow
+cache-*.arrow
+
+# Archivos comprimidos
+*.rar
+*.zip
