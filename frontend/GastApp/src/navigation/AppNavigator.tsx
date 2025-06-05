@@ -122,9 +122,11 @@ const MainTabs = () => {
           shadowOffset: { width: 0, height: 2 },
           shadowRadius: 3,
         }}>
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>
-            GastApp
-          </Text>
+          <Image 
+            source={require('../images/logoGastApp.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
             {userData?.imagenPerfil ? (
               <Image 
@@ -252,6 +254,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'white',
+  },
+  logo: {
+    width: 42,
+    height: 42,
+    tintColor: 'white'
   },
 });
 

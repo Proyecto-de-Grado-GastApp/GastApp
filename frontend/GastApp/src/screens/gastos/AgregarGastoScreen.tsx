@@ -16,6 +16,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import recognize from '@react-native-ml-kit/text-recognition';
 
 import { mostrarNotificacionNuevoGasto } from '../../notifications/notifeeService';
+import { mostrarNotificacionPresupuestoCasiAgotado, mostrarNotificacionPresupuestoSuperado } from "../../notifications/notifeeService";
 import notifee, { AndroidImportance } from '@notifee/react-native';
 
 type RootStackParamList = {
@@ -420,6 +421,39 @@ const procesarTicket = (textoOCR: string): TicketData => {
         EtiquetaIds: etiquetasSeleccionadas
       };
 
+      const resPresupuestos = await axios.get(`${API_BASE_URL}/api/presupuestos`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const todosLosPresupuestos = resPresupuestos.data;
+      const presupuesto = todosLosPresupuestos.find((p: any) => p.categoriaId === categoriaId);
+
+      //Función para calcular el total gastado en ese presupuesto antes y después de crear el gasto
+      const obtenerTotalGastado = async () => {
+        const resGastos = await axios.get(`${API_BASE_URL}/api/gastos/categoria/${categoriaId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const gastosFiltrados = resGastos.data.filter((g: any) => {
+          const fechaGasto = new Date(g.fecha);
+          return g.activo !== false &&
+            fechaGasto >= new Date(presupuesto.fechaInicio) &&
+            fechaGasto <= new Date(presupuesto.fechaFin);
+        });
+
+        return gastosFiltrados.reduce((sum: number, g: any) => sum + g.cantidad, 0);
+      };
+
+      let porcentajeAntes = 0;
+      let gastadoDespues = 0;
+      if (presupuesto) {
+        const gastadoAntes = await obtenerTotalGastado();
+        porcentajeAntes = (gastadoAntes / presupuesto.cantidad) * 100;
+      }
+
       const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -428,6 +462,26 @@ const procesarTicket = (textoOCR: string): TicketData => {
       });
 
       await mostrarNotificacionNuevoGasto(descripcion, cantidadNum);
+
+      if (presupuesto) {
+        gastadoDespues = await obtenerTotalGastado();
+        const porcentajeDespues = (gastadoDespues / presupuesto.cantidad) * 100;
+
+        if (porcentajeAntes < 90 && porcentajeDespues >= 90 && porcentajeDespues < 100) {
+          mostrarNotificacionPresupuestoCasiAgotado(
+            presupuesto.categoriaNombre,
+            presupuesto.cantidad,
+            presupuesto.cantidad - gastadoDespues
+          );
+        } else if (porcentajeAntes < 100 && porcentajeDespues >= 100) {
+          mostrarNotificacionPresupuestoSuperado(
+            presupuesto.categoriaNombre,
+            presupuesto.cantidad,
+            gastadoDespues - presupuesto.cantidad
+          );
+        }
+      }
+      
       Alert.alert('Éxito', 'Gasto creado correctamente');
       setTimeout(() => navigation.goBack(), 500);
     } catch (error: any) {
@@ -510,7 +564,7 @@ const procesarTicket = (textoOCR: string): TicketData => {
 
           <Text style={styles.label}>Categoría *</Text>
           <View style={styles.categoriesContainer}>
-            {categorias.map(cat => (
+            {categorias.filter(cat => cat.id !==9).map(cat => (
               <TouchableOpacity
                 key={cat.id}
                 style={[

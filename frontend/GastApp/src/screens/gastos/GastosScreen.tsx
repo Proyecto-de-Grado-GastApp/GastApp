@@ -27,8 +27,17 @@ export default function GastosScreen({ navigation }: any) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Filtrar por categoría
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [gastosFiltrados, setGastosFiltrados] = useState<any[]>([]);
+
+  // Filtrar por fecha
+  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth() + 1);
+  const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
+  const [totalMes, setTotalMes] = useState(0);
+
+
 
 
   const fetchGastos = async () => {
@@ -78,13 +87,33 @@ export default function GastosScreen({ navigation }: any) {
   };
 
   useEffect(() => {
-    if (filtroCategoria === '') {
-      setGastosFiltrados(gastos);
-    } else {
-      const filtrados = gastos.filter(g => g.categoriaId.toString() === filtroCategoria);
-      setGastosFiltrados(filtrados);
-    }
-  }, [filtroCategoria, gastos]);
+    const filtrados = gastos.filter((g) => {
+      const fecha = new Date(g.fecha);
+
+      const coincideMes = (fecha.getMonth() + 1) === mesSeleccionado;
+      const coincideAnio = fecha.getFullYear() === anioSeleccionado;
+      const coincideCategoria = filtroCategoria === '' || g.categoriaId.toString() === filtroCategoria;
+      const estaActivo = g.activo !== false;
+
+      return estaActivo && coincideMes && coincideAnio && coincideCategoria;
+    });
+
+    setGastosFiltrados(filtrados);
+  }, [filtroCategoria, gastos, mesSeleccionado, anioSeleccionado]);
+
+  useEffect(() => {
+    const gastosDelMes = gastos.filter((g) => {
+      const fecha = new Date(g.fecha);
+      return (
+        g.activo !== false &&
+        (fecha.getMonth() + 1) === mesSeleccionado &&
+        fecha.getFullYear() === anioSeleccionado
+      );
+    });
+
+    const totalDelMes = gastosDelMes.reduce((sum, g) => sum + g.cantidad, 0);
+    setTotalMes(totalDelMes);
+  }, [gastos, mesSeleccionado, anioSeleccionado]);
 
   const renderGastoItem = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -138,27 +167,68 @@ export default function GastosScreen({ navigation }: any) {
 
       {/* Resumen */}
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Total del período</Text>
-        <Text style={styles.totalText}>{total.toFixed(2)}€</Text>
+        <Text style={styles.summaryTitle}>Resumen</Text>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryColumn}>
+            <Text style={styles.summaryLabel}>Total histórico</Text>
+            <Text style={styles.summaryValue}>{total.toFixed(2)}€</Text>
+          </View>
+          <View style={styles.summaryColumn}>
+            <Text style={styles.summaryLabel}>Total mes selecionado</Text>
+            <Text style={styles.summaryValue}>{totalMes.toFixed(2)}€</Text>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.pickerCard}>
-        <Text style={styles.pickerText}>Filtrar por categoría</Text>
-        <Picker
-          selectedValue={filtroCategoria}
-          onValueChange={(valor) => setFiltroCategoria(valor)}
-          style={{ backgroundColor: 'white', borderRadius: 8 }}
-        >
-          <Picker.Item label="-- Todas --" value="" />
-          <Picker.Item label="Alimentación" value="1" />
-          <Picker.Item label="Transporte" value="2" />
-          <Picker.Item label="Salud" value="3" />
-          <Picker.Item label="Hogar" value="5" />
-          <Picker.Item label="Ocio" value="6" />
-          <Picker.Item label="Educación" value="8" />
-          <Picker.Item label="Otros" value="10" />
-        </Picker>
+      <View style={styles.filtrosContainer}>
+        {/* Categoría */}
+        <View style={styles.pickerCard}>
+          <Text style={styles.pickerLabel}>Filtrar por categoría</Text>
+          <Picker
+            selectedValue={filtroCategoria}
+            onValueChange={(valor) => setFiltroCategoria(valor)}
+            style={styles.picker}
+          >
+            <Picker.Item label="-- Todas --" value="" />
+            <Picker.Item label="Alimentación" value="1" />
+            <Picker.Item label="Transporte" value="2" />
+            <Picker.Item label="Salud" value="3" />
+            <Picker.Item label="Hogar" value="5" />
+            <Picker.Item label="Ocio" value="6" />
+            <Picker.Item label="Educación" value="8" />
+            <Picker.Item label="Otros" value="10" />
+          </Picker>
+        </View>
+
+        {/* Fecha (Mes y Año) */}
+        <View style={styles.pickerCard}>
+          <Text style={styles.pickerLabel}>Filtrar por fecha</Text>
+          <Picker
+            selectedValue={mesSeleccionado}
+            onValueChange={(value) => setMesSeleccionado(value)}
+            style={[styles.picker, { marginBottom: 8 }]}
+          >
+            {Array.from({ length: 12 }, (_, i) => (
+              <Picker.Item
+                key={i + 1}
+                label={format(new Date(2000, i, 1), 'MMMM', { locale: es })}
+                value={i + 1}
+              />
+            ))}
+          </Picker>
+          <Picker
+            selectedValue={anioSeleccionado}
+            onValueChange={(value) => setAnioSeleccionado(value)}
+            style={styles.picker}
+          >
+            {Array.from({ length: 5 }, (_, i) => {
+              const year = new Date().getFullYear() - i;
+              return <Picker.Item key={year} label={year.toString()} value={year} />;
+            })}
+          </Picker>
+        </View>
       </View>
+
 
 
       {/* Lista de gastos */}
@@ -181,7 +251,7 @@ export default function GastosScreen({ navigation }: any) {
               style={styles.emptyButton}
               onPress={handleAgregarGasto}
             >
-              <Text style={styles.emptyButtonText}>Agregar primer gasto</Text>
+              <Text style={styles.emptyButtonText}>Agregar Gasto</Text>
             </TouchableOpacity>
           </View>
         }
@@ -260,9 +330,28 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   summaryTitle: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryColumn: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  summaryLabel: {
+    fontSize: 14,
     color: '#64748b',
     marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0f172a',
   },
   totalText: {
     fontSize: 28,
@@ -347,16 +436,35 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     color: "#64748b"
   },
+    filtrosContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
+  },
+
   pickerCard: {
+    flex: 1,
     backgroundColor: 'white',
     borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    marginBottom: 16,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
-  }
+  },
+
+  pickerLabel: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+
+  picker: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+  },
+
+
 });

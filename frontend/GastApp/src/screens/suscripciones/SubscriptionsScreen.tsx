@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  RefreshControl,
-  Image
+  RefreshControl
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
@@ -16,8 +15,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import globalStyles from '../../styles/index';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import { renderIcon } from '../../functions/index'
 
+// Para que se actualice automaticamente la pantalla cuando se crea una suscripción
+import { useFocusEffect } from '@react-navigation/native';
 
 
 export default function SubscriptionsScreen({ navigation }: any) {
@@ -52,11 +53,14 @@ export default function SubscriptionsScreen({ navigation }: any) {
     }
   };
 
-  useEffect(() => {
-    if (token) {
-      fetchSuscripciones();
-    }
-  }, [token]);
+  // Para que se actualice la pantalla cada vez que nos situemos en ella
+  useFocusEffect(
+    useCallback(() => {
+      if (token) {
+        fetchSuscripciones();
+      }
+    }, [token])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -166,54 +170,6 @@ export default function SubscriptionsScreen({ navigation }: any) {
 //   };
 //   return icons[key] || 'apps';
 // };
-
-const renderIcon = (descripcion: string) => {
-  const key = descripcion.toLowerCase().trim();
-
-  if (key === 'netflix') {
-    return (
-      <Image
-        source={require('../../images/netflix.png')}
-        style={{ width: 24, height: 24, resizeMode: 'contain', tintColor: '#E50914' }}
-      />
-    );
-  }
-
-  const icons: { [key: string]: string } = {
-    spotify: 'spotify',
-    strava: 'strava',
-    youtube: 'youtube',
-    hbo: 'tv',
-    prime: 'amazon',
-    disney: 'magic',
-  };
-
-  const iconName = icons[key] || 'apps';
-
-  return (
-    <FontAwesome5
-      name={iconName}
-      size={30}
-      color={getColorMarca(descripcion)}
-      solid
-    />
-  );
-};
-
-const getColorMarca = (descripcion: string) => {
-  const key = descripcion.toLowerCase();
-  const colors: { [key: string]: string } = {
-    spotify: '#1DB954',   // Verde de Spotify
-    netflix: '#E50914',   // Rojo de Netflix
-    strava: '#FC4C02',    // Naranja de Strava
-    youtube: '#FF0000',   // Rojo de YouTube
-    hbo: '#4B0082',       // Azul oscuro de HBO (ejemplo)
-    prime: '#00A8E1',     // Azul de Amazon Prime
-    disney: '#113CCF',    // Azul de Disney+
-    default: '#64748b',   // Gris por defecto
-  };
-  return colors[key] || colors['default'];
-};
 
 const styles = StyleSheet.create({
   container: {

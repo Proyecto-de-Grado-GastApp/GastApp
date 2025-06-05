@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -18,6 +18,11 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import globalStyles from '../styles/index';
 
+// Iconos suscripciones
+import { renderIcon } from '../functions/index'
+
+import { useFocusEffect } from '@react-navigation/native';
+
 type Categoria = {
   id: number;
   nombre: string;
@@ -27,6 +32,7 @@ const HomeScreen = ({ navigation, route }: any) => {
   const { token } = useAuth();
   const [showWelcome, setShowWelcome] = useState(true);
   const [gastos, setGastos] = useState<any[]>([]);
+  const [suscripciones, setSuscripciones] = useState<any[]>([]);
   const [totalMes, setTotalMes] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,8 +70,13 @@ const HomeScreen = ({ navigation, route }: any) => {
 
       setGastos(gastosOrdenadosFiltrados);
 
+      //Guardo suscripciones
+      const suscripciones = res.data.filter((gasto: any) => gasto.categoriaId === 9);
+
+      setSuscripciones(suscripciones);
+
       // Gastos Totales incluyendo suscripciones para calcular el gasto mensual completo
-      const gastosOrdenados = res.data.sort((a: any, b: any) => 
+      const gastosTotales = res.data.sort((a: any, b: any) => 
         new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
       );
       
@@ -73,7 +84,7 @@ const HomeScreen = ({ navigation, route }: any) => {
       const hoy = new Date();
       const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       
-      const gastosMesActual = gastosOrdenados.filter((gasto: any) => {
+      const gastosMesActual = gastosTotales.filter((gasto: any) => {
         const fechaGasto = new Date(gasto.fecha);
         return fechaGasto >= primerDiaMes && fechaGasto <= hoy;
       });
@@ -94,10 +105,12 @@ const HomeScreen = ({ navigation, route }: any) => {
   };
 
   // Efecto para cargar datos al inicio
-  useEffect(() => {
-    fetchGastos();
-    fetchCategorias();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchGastos();
+      fetchCategorias();
+    }, [])
+  );
 
   // Efecto para el mensaje de bienvenida
   useEffect(() => {
@@ -177,7 +190,7 @@ const HomeScreen = ({ navigation, route }: any) => {
           <ActivityIndicator size="large" color="#2563eb" style={styles.loader} />
         ) : (
           <>
-            <Text style={styles.title}>Resumen de Gastos</Text>
+            <Text style={styles.title}>Resumen de Gastos y Suscripciones</Text>
             
             {/* Card de resumen mensual */}
             <View style={styles.card}>
@@ -198,7 +211,7 @@ const HomeScreen = ({ navigation, route }: any) => {
 
             {/* Lista de últimos gastos */}
             <Text style={styles.sectionTitle}>Últimos gastos</Text>
-            {gastos.slice(0, 5).map((gasto) => (
+            {gastos.slice(0, 4).map((gasto) => (
               <TouchableOpacity 
                 key={gasto.id} 
                 style={styles.listItem}
@@ -211,6 +224,50 @@ const HomeScreen = ({ navigation, route }: any) => {
                     size={24} 
                     color="white" 
                     />
+                  </View>
+                  
+                  <View style={styles.listItemText}>
+                    <Text style={styles.listItemTitle}>{gasto.descripcion}</Text>
+                    <Text style={styles.listItemSubtitle}>
+                      {formatFecha(gasto.fecha)} • {categorias.find(c => c.id === gasto.categoriaId)?.nombre || 'Otros'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.listItemAmount}>-{gasto.cantidad.toFixed(2)}€</Text>
+              </TouchableOpacity>
+            ))}
+
+            {gastos.length === 0 && (
+              <View style={styles.emptyState}>
+                <Icon name="receipt-outline" size={40} color="#ccc" />
+                <Text style={styles.emptyText}>No hay gastos registrados</Text>
+                <Text style={styles.emptySubtext}>Presiona el botón para agregar tu primer gasto</Text>
+              </View>
+            )}
+          </>
+        )}
+      </View>
+
+      <View style={styles.content}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#2563eb" style={styles.loader} />
+        ) : (
+          <>
+
+            {/* Lista de últimas suscripciones */}
+            <Text style={styles.sectionTitle}>Últimas suscripciones</Text>
+            {suscripciones.slice(0, 4).map((gasto) => (
+              <TouchableOpacity 
+                key={gasto.id} 
+                style={styles.listItem}
+                onPress={() => navigation.navigate('DetalleSuscripcionScreen', {
+                  suscripcionId: gasto.id,
+                  title: 'Detalle de Suscripción'
+                })}
+              >
+                <View style={styles.listItemContent}>
+                  <View style={styles.categoriaIcon}>
+                    {renderIcon(gasto.descripcion)}
                   </View>
                   
                   <View style={styles.listItemText}>
@@ -289,7 +346,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginTop: 20,
     marginBottom: 10,
   },
   card: {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import globalStyles from '../styles/index';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 import { mostrarNotificacionPresupuestoCasiAgotado, mostrarNotificacionPresupuestoSuperado } from "../notifications/notifeeService";
@@ -148,31 +149,11 @@ const PresupuestosScreen = () => {
     fetchPresupuestos();
   };
 
-  useEffect(() => {
-    fetchPresupuestos();
-  }, []);
-
-  useEffect(() => {
-  presupuestos.forEach((presupuesto) => {
-    const porcentaje = (presupuesto.gastado / presupuesto.cantidad) * 100;
-    const restante = presupuesto.cantidad - presupuesto.gastado;
-
-    if (porcentaje > 90 && porcentaje < 100) {
-      mostrarNotificacionPresupuestoCasiAgotado(
-        presupuesto.categoriaNombre,
-        presupuesto.cantidad,
-        restante
-      );
-    } else if (porcentaje >= 100) {
-      mostrarNotificacionPresupuestoSuperado(
-        presupuesto.categoriaNombre,
-        presupuesto.cantidad,
-        presupuesto.gastado - presupuesto.cantidad
-      );
-    }
-  });
-}, [presupuestos]);
-
+  useFocusEffect(
+    useCallback(() => {
+      fetchPresupuestos();
+    }, [])
+  );
 
   if (loading && !refreshing) {
     return (

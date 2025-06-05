@@ -3,7 +3,7 @@ import { Text, View, Image, StyleSheet } from "react-native";
 import CircularProgress from "react-native-circular-progress-indicator";
 
 import globalStyles from '../styles/index';
-import { formatearCantidad } from '../helpers';
+import { formatearCantidad } from '../functions';
 import { Gastos } from '../types';
 
 interface Presupuestos {
