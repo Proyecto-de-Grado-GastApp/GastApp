@@ -15,7 +15,7 @@ import ControlPresupuesto from './ControlPresupuesto';
 import FormularioGasto from './FormularioGasto';
 import ListadoGastos from './ListadoGastos';
 import Filtro from './Filtro';
-import { generarId } from '../helpers/index';
+import { generarId } from '../functions/index';
 import { Gastos } from '../types';
 import { initialGastoState } from '../types';
 

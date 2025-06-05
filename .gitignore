@@ -32,3 +32,4 @@ cache-*.arrow
 # Archivos comprimidos
 *.rar
 *.zip
+frontend/GastApp/src/api/urlConnection.ts

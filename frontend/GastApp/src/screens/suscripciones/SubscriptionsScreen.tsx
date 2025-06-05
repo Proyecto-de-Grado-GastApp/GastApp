@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  RefreshControl,
+  RefreshControl
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
@@ -14,6 +14,12 @@ import { API_BASE_URL } from '../../api/urlConnection';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import globalStyles from '../../styles/index';
+import { renderIcon } from '../../functions/index'
+
+// Para que se actualice automaticamente la pantalla cuando se crea una suscripción
+import { useFocusEffect } from '@react-navigation/native';
+
 
 export default function SubscriptionsScreen({ navigation }: any) {
   const { token } = useAuth();
@@ -47,11 +53,14 @@ export default function SubscriptionsScreen({ navigation }: any) {
     }
   };
 
-  useEffect(() => {
-    if (token) {
-      fetchSuscripciones();
-    }
-  }, [token]);
+  // Para que se actualice la pantalla cada vez que nos situemos en ella
+  useFocusEffect(
+    useCallback(() => {
+      if (token) {
+        fetchSuscripciones();
+      }
+    }, [token])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -75,8 +84,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
       })}
     >
       <View style={styles.itemLeft}>
-        <View style={[styles.categoriaIcon, { backgroundColor: '#0ea5e9' }]}>
-          <Icon name="repeat-outline" size={20} color="white" />
+        <View style={[styles.categoriaIcon]}>
+          {renderIcon(item.descripcion)}
         </View>
         <View style={styles.itemTextContainer}>
           <Text style={styles.listItemText}>{item.descripcion}</Text>
@@ -147,6 +156,20 @@ export default function SubscriptionsScreen({ navigation }: any) {
     </View>
   );
 }
+
+// const getCategoriaIcon = (descripcion: string) => {
+//   const key = descripcion.toLowerCase().trim();
+//   const icons: { [key: string]: string } = {
+//     spotify: 'spotify',
+//     netflix: 'netflix',
+//     strava: 'strava',
+//     youtube: 'youtube',
+//     hbo: 'tv',
+//     prime: 'amazon',
+//     disney: 'film',
+//   };
+//   return icons[key] || 'apps';
+// };
 
 const styles = StyleSheet.create({
   container: {
@@ -221,13 +244,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoriaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10, // Ajustado de 12 a 10
-    backgroundColor: '#2563eb',
+    ...globalStyles.categoriaIcon
   },
   itemTextContainer: {
     flex: 1,

@@ -7,7 +7,6 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { StackNavigationProp } from '@react-navigation/stack';
 import LoadingScreen from '../components/LoadingScreen';
 
-// ! Investigar esto
 type MainAppScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainApp'>;
 
 const MainAppScreen = () => {

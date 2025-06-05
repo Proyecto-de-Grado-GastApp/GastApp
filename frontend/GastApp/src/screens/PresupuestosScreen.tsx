@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,9 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import globalStyles from '../styles/index';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 import { mostrarNotificacionPresupuestoCasiAgotado, mostrarNotificacionPresupuestoSuperado } from "../notifications/notifeeService";
 
@@ -146,31 +149,11 @@ const PresupuestosScreen = () => {
     fetchPresupuestos();
   };
 
-  useEffect(() => {
-    fetchPresupuestos();
-  }, []);
-
-  useEffect(() => {
-  presupuestos.forEach((presupuesto) => {
-    const porcentaje = (presupuesto.gastado / presupuesto.cantidad) * 100;
-    const restante = presupuesto.cantidad - presupuesto.gastado;
-
-    if (porcentaje > 90 && porcentaje < 100) {
-      mostrarNotificacionPresupuestoCasiAgotado(
-        presupuesto.categoriaNombre,
-        presupuesto.cantidad,
-        restante
-      );
-    } else if (porcentaje >= 100) {
-      mostrarNotificacionPresupuestoSuperado(
-        presupuesto.categoriaNombre,
-        presupuesto.cantidad,
-        presupuesto.gastado - presupuesto.cantidad
-      );
-    }
-  });
-}, [presupuestos]);
-
+  useFocusEffect(
+    useCallback(() => {
+      fetchPresupuestos();
+    }, [])
+  );
 
   if (loading && !refreshing) {
     return (
@@ -246,13 +229,16 @@ const PresupuestosScreen = () => {
             return (
               <View key={presupuesto.id} style={styles.card}>
                 <View style={styles.cardHeader}>
+                  
                   <View style={styles.categoryContainer}>
-                    <Icon 
-                      name={presupuesto.icono || 'wallet-outline'} 
-                      size={24} 
-                      color="#2563eb" 
-                      style={styles.categoryIcon}
-                    />
+                    <View style={[styles.categoriaIcon, { backgroundColor: getCategoriaColor(presupuesto.categoriaId) }]}>
+                      <Icon 
+                        name={presupuesto.icono || 'wallet-outline'} 
+                        size={24} 
+                        color="white" 
+                      />
+                    </View>
+                    
                     <Text style={styles.category}>
                       {presupuesto.categoriaNombre}
                     </Text>
@@ -326,6 +312,21 @@ const PresupuestosScreen = () => {
       )}
     </ScrollView>
   );
+};
+
+const getCategoriaColor = (id: number) => {
+  const colors: { [key: number]: string } = {
+    1: '#ef4444', // Comida
+    2: '#3b82f6', // Transporte
+    3: '#10b981', // Hogar
+    5: '#8b5cf6', // Salud
+    6: '#f59e0b', // Ocio
+    8: '#ec4899', // Educación
+    9: '#018a04', // Suscripciones
+    10: '#64748b'  // Otros
+
+  };
+  return colors[id] || '#64748b';
 };
 
 const styles = StyleSheet.create({
@@ -447,9 +448,10 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1
   },
-  categoryIcon: {
-    marginRight: 10,
+  categoriaIcon: {
+    ...globalStyles.categoriaIcon,
   },
   category: {
     fontSize: 18,

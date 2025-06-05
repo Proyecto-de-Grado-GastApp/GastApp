@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
 import CustomInput from '../components/CustomInput';
 import { loginUser } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,6 +33,11 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
+      <Image 
+        source={require('../images/logoGastApp.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <Text style={styles.title}>Iniciar Sesión</Text>
       <CustomInput 
         placeholder="Correo" 
@@ -67,6 +72,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffffff',
     paddingHorizontal: 24,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+    alignSelf: 'center',
   },
   title: {
     fontSize: 24,
