@@ -8,27 +8,39 @@ import {
   Alert, 
   ScrollView,
   Switch,
-  Platform
+  Platform,
+  Modal,
+  TouchableWithoutFeedback,
+  FlatList
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import { API_BASE_URL } from '../../api/urlConnection';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import notifee, { AndroidImportance } from '@notifee/react-native';
-
+import notifee from '@notifee/react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-
-import { suscripciones } from '../../data/suscripcionesData';
+import { suscripciones as suscripcionesOriginales } from '../../data/suscripcionesData';
 import { mostrarNotificacionNuevaSuscripcion } from '../../notifications/notifeeService';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 type RootStackParamList = {
   AgregarGasto: undefined;
   Home: undefined;
 };
 
+interface Plan {
+  id: number;
+  nombre: string;
+  precio: number;
+}
+
+interface SuscripcionPredefinida {
+  nombre: string;
+  planes: Plan[];
+}
+
 interface Frecuencia {
-  id: string;
+  id: number;
   nombre: string;
 }
 
@@ -38,68 +50,66 @@ interface AgregarSuscripcionesScreenProps {
   navigation: AgregarSuscripcionesScreenNavigationProp;
 }
 
+// Se procesan los datos originales para añadir un ID a cada plan
+const suscripcionesData = suscripcionesOriginales.map(suscripcion => ({
+  ...suscripcion,
+  planes: suscripcion.planes.map((plan, index) => ({
+    ...plan,
+    id: index 
+  }))
+}));
+
+const frecuenciasDisponibles: Frecuencia[] = [
+    { id: 3, nombre: 'Mensual' },
+    { id: 4, nombre: 'Anual' },
+];
+
 const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({ navigation }) => {
   const { token } = useAuth();
 
-  // Estado para suscripciones y planes
-  const [suscripcionSeleccionada, setSuscripcionSeleccionada] = useState(suscripciones[0]?.nombre || '');
-  const [planSeleccionado, setPlanSeleccionado] = useState<string | null>(null);
-  const [esFrecuente, setEsFrecuente] = useState(false);
+  const [suscripcionSeleccionada, setSuscripcionSeleccionada] = useState<SuscripcionPredefinida | null>(null);
+  const [planSeleccionado, setPlanSeleccionado] = useState<Plan | null>(null);
+  const [frecuencia, setFrecuencia] = useState<number>(3);
+  
+  const [showSuscripcionesModal, setShowSuscripcionesModal] = useState(false);
+  const [showPlanesModal, setShowPlanesModal] = useState(false);
+  const [showFrecuenciaModal, setShowFrecuenciaModal] = useState(false);
 
-  // Campos del formulario
-  const [descripcion, setDescripcion] = useState('');
   const [cantidad, setCantidad] = useState('');
   const [fecha, setFecha] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [frecuencia, setFrecuencia] = useState<number>(3); // 3 = mensual
-  const [notificar, setNotificar] = useState(false);
+  const [notificar, setNotificar] = useState(true);
   const [notas, setNotas] = useState('');
 
+  useEffect(() => {
+    (async () => {
+      await notifee.requestPermission();
+    })();
+  }, []);
+
+  const handleSeleccionarSuscripcion = (suscripcion: SuscripcionPredefinida) => {
+    setSuscripcionSeleccionada(suscripcion);
+    setPlanSeleccionado(null);
+    setCantidad('');
+    setShowSuscripcionesModal(false);
+  };
+
+  const handleSeleccionarPlan = (plan: Plan) => {
+    setPlanSeleccionado(plan);
+    setCantidad(plan.precio.toString());
+    setShowPlanesModal(false);
+  };
   
-  const frecuencias: Frecuencia[] = [
-    { id: 'mensual', nombre: 'Mensual' },
-    { id: 'anual', nombre: 'Anual' },
-  ]
-
-  // Cuando cambie la suscripción seleccionada, seleccionamos automáticamente el primer plan y actualizamos campos
-  useEffect(() => {
-    const suscripcionObj = suscripciones.find(s => s.nombre === suscripcionSeleccionada);
-    if (suscripcionObj && suscripcionObj.planes.length > 0) {
-      const primerPlan = suscripcionObj.planes[0];
-      setPlanSeleccionado(`${primerPlan.nombre} - ${primerPlan.precio.toFixed(2)}`);
-      setDescripcion(suscripcionObj.nombre);
-      setCantidad(primerPlan.precio.toFixed(2));
-    }
-  }, [suscripcionSeleccionada]);
-
-  // Cuando cambia el plan seleccionado, actualizamos descripción y cantidad
-  useEffect(() => {
-    if (!planSeleccionado) return;
-    const suscripcionObj = suscripciones.find(suscripcion => suscripcion.nombre === suscripcionSeleccionada);
-    if (!suscripcionObj) return;
-
-    const planNombrePrecio = planSeleccionado.split(' - ');
-    const planNombre = planNombrePrecio[0];
-    const planObj = suscripcionObj.planes.find(plan => plan.nombre === planNombre);
-    if (planObj) {
-      setDescripcion(suscripcionObj.nombre);
-      setCantidad(planObj.precio.toFixed(2));
-    }
-  }, [planSeleccionado]);
-
-  useEffect(() => {
-      (async () => {
-        const settings = await notifee.requestPermission();
-        if (settings.authorizationStatus < 1) {
-          console.warn('Permiso para notificaciones denegado');
-        }
-      })();
-    }, []);
+  const handleSeleccionarFrecuencia = (frec: Frecuencia) => {
+    setFrecuencia(frec.id);
+    setShowFrecuenciaModal(false);
+  };
 
   const handleFechaChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || fecha;
-    setShowDatePicker(Platform.OS === 'ios');
-    setFecha(currentDate);
+    setShowDatePicker(false);
+    if (event.type === 'set' && selectedDate) {
+      setFecha(selectedDate);
+    }
   };
 
   const formatDate = (date: Date): string => {
@@ -111,59 +121,46 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
   };
 
   const handleGuardar = async () => {
-    if (!descripcion.trim()) {
-      Alert.alert('Error', 'La descripción es obligatoria');
-      return;
-    }
-    const cantidadNum = parseFloat(cantidad);
-    if (isNaN(cantidadNum) || cantidadNum <= 0) {
-      Alert.alert('Error', 'Ingrese una cantidad válida mayor a cero');
+    if (!suscripcionSeleccionada || !planSeleccionado) {
+      Alert.alert('Error', 'Debe seleccionar un servicio y un plan.');
       return;
     }
 
-    if (notas && notas.length > 500) {
-      Alert.alert('Error', 'Las notas no pueden exceder los 500 caracteres');
+    const cantidadNum = parseFloat(cantidad.replace(',', '.'));
+    if (isNaN(cantidadNum) || cantidadNum < 0) {
+      Alert.alert('Error', 'La cantidad del plan no es válida.');
       return;
     }
 
     try {
       const gastoData = {
-        CategoriaId: 9, // Id fijo para suscripciones
+        CategoriaId: 9,
         Cantidad: cantidadNum,
-        Descripcion: descripcion.trim(),
+        Descripcion: suscripcionSeleccionada.nombre,
         Fecha: fecha.toISOString(),
         Activo: true,
-        EsFrecuente: true,
-        ...(esFrecuente && {
         Frecuencia: frecuencia,
-        Notificar: notificar
-      }),
-        Nota: notas?.trim() || '',
+        Notificar: notificar,
+        Nota: notas.trim() || `Plan: ${planSeleccionado.nombre}`,
         MetodoPagoId: null,
-        EtiquetaIds: []
+        EtiquetasPersonalizadasIds: []
       };
 
-      const response = await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
+      await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      await mostrarNotificacionNuevaSuscripcion(descripcion, cantidadNum);
+      await mostrarNotificacionNuevaSuscripcion(suscripcionSeleccionada.nombre, cantidadNum);
       Alert.alert('Éxito', 'Suscripción guardada correctamente');
       setTimeout(() => navigation.goBack(), 500);
+
     } catch (error) {
       let errorMessage = 'Error al guardar la suscripción';
-      if (axios.isAxiosError(error)) {
-        if (error.response?.data?.errors) {
-          const validationErrors = Object.values(error.response.data.errors)
-            .flat()
-            .join('\n');
-          errorMessage = `Errores de validación:\n${validationErrors}`;
-        } else {
-          errorMessage = error.response?.data?.title || error.response?.data?.message || error.message;
-        }
+      if (axios.isAxiosError(error) && error.response) {
+        errorMessage = error.response.data?.message || error.response.data?.title || error.message;
       }
       Alert.alert('Error', errorMessage);
     }
@@ -171,67 +168,46 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Icon name="arrow-back" size={24} color="#2563eb" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Agregar Suscripción</Text>
+        <View style={{ width: 24 }} />
+      </View>
+      
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Agregar Suscripción</Text>
-
-        <Text style={styles.label}>Suscripción *</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={suscripcionSeleccionada}
-            onValueChange={(itemValue) => setSuscripcionSeleccionada(itemValue)}
-            mode="dropdown"
-          >
-            {suscripciones.map((sus) => (
-              <Picker.Item key={sus.nombre} label={sus.nombre} value={sus.nombre} />
-            ))}
-          </Picker>
-        </View>
+        <Text style={styles.label}>Servicio *</Text>
+        <TouchableOpacity 
+          style={styles.input}
+          onPress={() => setShowSuscripcionesModal(true)}
+        >
+          <Text style={!suscripcionSeleccionada ? styles.placeholderText : styles.inputText}>
+            {suscripcionSeleccionada?.nombre || 'Seleccionar un servicio'}
+          </Text>
+          <Icon name="chevron-down" size={20} color="#64748b" />
+        </TouchableOpacity>
 
         <Text style={styles.label}>Plan *</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={planSeleccionado}
-            onValueChange={(itemValue) => setPlanSeleccionado(itemValue)}
-            mode="dropdown"
-          >
-            {suscripciones.find(s => s.nombre === suscripcionSeleccionada)?.planes.map(plan => (
-              <Picker.Item
-                key={plan.nombre}
-                label={`${plan.nombre} - ${plan.precio.toFixed(2)} €`}
-                value={`${plan.nombre} - ${plan.precio.toFixed(2)}`}
-              />
-            ))}
-          </Picker>
-        </View>
-
-            
-        <View style={styles.hidden}>
-          <Text style={styles.label}>Descripción *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Descripción"
-            value={descripcion}
-            onChangeText={setDescripcion}
-          />
-        </View>
-
-        <View style={styles.hidden}>
-          <Text style={styles.label}>Cantidad (€) *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Cantidad"
-            keyboardType="decimal-pad"
-            value={cantidad}
-            onChangeText={(text) => setCantidad(text.replace(',', '.'))}
-          />
-        </View>
-
+        <TouchableOpacity 
+          style={[styles.input, !suscripcionSeleccionada && styles.inputDisabled]}
+          onPress={() => setShowPlanesModal(true)}
+          disabled={!suscripcionSeleccionada}
+        >
+          <Text style={!planSeleccionado ? styles.placeholderText : styles.inputText}>
+            {planSeleccionado 
+              ? `${planSeleccionado.nombre} - ${planSeleccionado.precio.toFixed(2)} €`
+              : 'Seleccionar un plan'}
+          </Text>
+          <Icon name="chevron-down" size={20} color="#64748b" />
+        </TouchableOpacity>
+        
         <Text style={styles.label}>Fecha de inicio</Text>
         <TouchableOpacity
           style={styles.input}
           onPress={() => setShowDatePicker(true)}
         >
-          <Text>{fecha.toLocaleDateString('es-ES')}</Text>
+          <Text style={styles.inputText}>{formatDate(fecha)}</Text>
         </TouchableOpacity>
 
         {showDatePicker && (
@@ -242,31 +218,17 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
             onChange={handleFechaChange}
           />
         )}
-
         
-        <View style={styles.hidden}>
-          <View style={styles.switchContainer}>
-            <Text style={styles.label}>¿Es un gasto frecuente?</Text>
-            <Switch
-              value={true}
-              disabled={true}
-              trackColor={{ true: '#2563eb' }}
-            />
-          </View>
-        </View>
-
         <Text style={styles.label}>Frecuencia</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={frecuencia}
-            onValueChange={(value) => setFrecuencia(value)}
-            mode="dropdown"
-          >
-            {frecuencias.map((freq) => (
-              <Picker.Item key={freq.id} label={freq.nombre} value={freq.id} />
-            ))}
-          </Picker>
-        </View>
+        <TouchableOpacity 
+          style={styles.input}
+          onPress={() => setShowFrecuenciaModal(true)}
+        >
+          <Text style={styles.inputText}>
+            {frecuenciasDisponibles.find(f => f.id === frecuencia)?.nombre || 'Seleccionar frecuencia'}
+          </Text>
+          <Icon name="chevron-down" size={20} color="#64748b" />
+        </TouchableOpacity>
 
         <View style={styles.switchContainer}>
           <Text style={styles.label}>¿Notificar próximo pago?</Text>
@@ -274,13 +236,15 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
             value={notificar}
             onValueChange={setNotificar}
             trackColor={{ false: '#767577', true: '#2563eb' }}
+            thumbColor={Platform.OS === 'android' ? '#f4f3f4' : undefined}
           />
         </View>
 
         <Text style={styles.label}>Notas adicionales</Text>
         <TextInput
-          style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-          placeholder="Agrega cualquier detalle adicional sobre esta suscripción"
+          style={[styles.input, { height: 80, textAlignVertical: 'top', paddingTop: 14 }]}
+          placeholder="Ej: Plan familiar, compartido, etc."
+          placeholderTextColor="#94a3b8"
           value={notas}
           onChangeText={setNotas}
           multiline
@@ -288,12 +252,97 @@ const AgregarSuscripcionesScreen: React.FC<AgregarSuscripcionesScreenProps> = ({
       </View>
 
       <TouchableOpacity
-        style={[styles.button, (!descripcion || !cantidad || isNaN(parseFloat(cantidad)) || parseFloat(cantidad) <= 0) && styles.buttonDisabled]}
+        style={[styles.button, !planSeleccionado && styles.buttonDisabled]}
         onPress={handleGuardar}
-        disabled={!descripcion || !cantidad || isNaN(parseFloat(cantidad)) || parseFloat(cantidad) <= 0}
+        disabled={!planSeleccionado}
       >
         <Text style={styles.buttonText}>Guardar Suscripción</Text>
       </TouchableOpacity>
+      
+      <Modal
+        visible={showSuscripcionesModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSuscripcionesModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowSuscripcionesModal(false)}>
+          <View style={styles.modalOverlay} />
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Seleccionar Servicio</Text>
+          <FlatList
+            data={suscripcionesData}
+            keyExtractor={item => item.nombre}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => handleSeleccionarSuscripcion(item)}
+              >
+                <Text style={styles.modalOptionText}>{item.nombre}</Text>
+                {suscripcionSeleccionada?.nombre === item.nombre && <Icon name="checkmark-circle" size={24} color="#2563eb" />}
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showPlanesModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPlanesModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowPlanesModal(false)}>
+          <View style={styles.modalOverlay} />
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Seleccionar Plan para {suscripcionSeleccionada?.nombre}</Text>
+          <FlatList
+            data={suscripcionSeleccionada?.planes || []}
+            keyExtractor={item => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => handleSeleccionarPlan(item)}
+              >
+                <Text style={styles.modalOptionText}>{item.nombre} - {item.precio.toFixed(2)} €</Text>
+                {planSeleccionado?.id === item.id && <Icon name="checkmark-circle" size={24} color="#2563eb" />}
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+                <Text style={styles.emptyListText}>Selecciona un servicio para ver sus planes.</Text>
+            }
+          />
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showFrecuenciaModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFrecuenciaModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowFrecuenciaModal(false)}>
+            <View style={styles.modalOverlay} />
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Seleccionar Frecuencia</Text>
+            <FlatList
+                data={frecuenciasDisponibles}
+                keyExtractor={item => item.id.toString()}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={styles.modalOption}
+                        onPress={() => handleSeleccionarFrecuencia(item)}
+                    >
+                        <Text style={styles.modalOptionText}>{item.nombre}</Text>
+                        {frecuencia === item.id && <Icon name="checkmark-circle" size={24} color="#2563eb" />}
+                    </TouchableOpacity>
+                )}
+            />
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 };
@@ -304,72 +353,137 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   contentContainer: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingBottom: 40,
   },
   section: {
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#2563eb',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#1e293b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
   },
   label: {
     fontSize: 16,
     fontWeight: '500',
-    marginBottom: 8,
-    color: '#333',
+    marginBottom: 10,
+    color: '#334155',
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f9fafb',
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e2e8f0',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 20,
     fontSize: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    color: '#1e293b',
+  },
+  inputDisabled: {
+      backgroundColor: '#f1f5f9',
+      opacity: 0.7,
+  },
+  inputText: {
+    fontSize: 16,
+    color: '#1e293b',
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#94a3b8',
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e2e8f0',
     borderRadius: 8,
-    marginBottom: 15,
-    overflow: 'hidden',
+    marginBottom: 20,
+    backgroundColor: '#f9fafb',
+    justifyContent: 'center',
   },
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
+    paddingVertical: 4,
   },
   button: {
     backgroundColor: '#2563eb',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 10,
-    marginBottom: 30,
+    minHeight: 52,
   },
   buttonDisabled: {
-    backgroundColor: '#a5b4fc',
-    opacity: 0.7,
+    backgroundColor: '#93c5fd',
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
-  hidden: {
-    display: 'none',
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingVertical: 12,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    textAlign: 'center',
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    maxHeight: '60%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#1e293b',
+  },
+  modalOption: {
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#334155',
+  },
+  emptyListText: {
+    textAlign: 'center',
+    color: '#64748b',
+    marginTop: 20,
+    fontSize: 16,
   },
 });
 

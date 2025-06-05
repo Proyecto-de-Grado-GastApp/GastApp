@@ -3,9 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Pressable,
   TouchableOpacity,
+  FlatList,
   ActivityIndicator,
   Alert,
   RefreshControl,
@@ -13,18 +12,14 @@ import {
 import axios from 'axios';
 import { API_BASE_URL } from '../api/urlConnection';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-import globalStyles from '../styles/index';
-import { useFocusEffect } from '@react-navigation/native';
 
-
-import { mostrarNotificacionPresupuestoCasiAgotado, mostrarNotificacionPresupuestoSuperado } from "../notifications/notifeeService";
-
+// --- Interfaces y Tipos ---
 interface Presupuesto {
   id: number;
   categoriaId: number;
@@ -33,9 +28,9 @@ interface Presupuesto {
   fechaInicio: string;
   fechaFin: string;
   gastado: number;
-  icono?: string;
 }
 
+// --- Componente Principal ---
 const PresupuestosScreen = () => {
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +42,6 @@ const PresupuestosScreen = () => {
 
   const fetchPresupuestos = async () => {
     try {
-      setLoading(true);
       const res = await axios.get(`${API_BASE_URL}/api/presupuestos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -55,7 +49,7 @@ const PresupuestosScreen = () => {
       const presupuestosConGastos = await Promise.all(
         res.data.map(async (presupuesto: any) => {
           const gastosRes = await axios.get(
-            `${API_BASE_URL}/api/gastos/categoria/${presupuesto.categoriaId}`,
+            `${API_BASE_URL}/api/gastos/por-categoria/${presupuesto.categoriaId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
 
@@ -90,33 +84,9 @@ const PresupuestosScreen = () => {
     }
   };
 
-  const getIconByCategory = (categoryName: string) => {
-    const name = categoryName.toLowerCase();
-    switch (name) {
-      case 'alimentación':
-        return 'fast-food-outline';
-      case 'transporte':
-        return 'car-outline';
-      case 'ocio':
-        return 'game-controller-outline';
-      case 'salud':
-        return 'medkit-outline';
-      case 'hogar':
-        return 'home-outline';
-      case 'educación':
-        return 'school-outline';
-      case 'ropa':
-        return 'shirt-outline';
-      case 'suscripciones':
-        return 'card-outline';
-      default:
-        return 'wallet-outline';
-    }
-  };
-
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
     Alert.alert(
-      'Eliminar presupuesto',
+      'Eliminar Presupuesto',
       '¿Estás seguro de que quieres eliminar este presupuesto?',
       [
         { text: 'Cancelar', style: 'cancel' },
@@ -128,7 +98,7 @@ const PresupuestosScreen = () => {
               await axios.delete(`${API_BASE_URL}/api/presupuestos/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
               });
-              fetchPresupuestos();
+              await fetchPresupuestos();
               Alert.alert('Éxito', 'Presupuesto eliminado correctamente');
             } catch (error) {
               console.error('Error eliminando presupuesto:', error);
@@ -140,40 +110,25 @@ const PresupuestosScreen = () => {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    return format(parseISO(dateString), "dd MMM yyyy", { locale: es });
-  };
-
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchPresupuestos();
-  };
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchPresupuestos();
-    }, [])
-  );
-
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl 
-          refreshing={refreshing} 
-          onRefresh={onRefresh}
-          colors={['#2563eb']}
-        />
+      if (token) {
+        fetchPresupuestos();
       }
-    >
+    }, [token])
+  );
+  
+  const formatDateRange = (start: string, end: string) => {
+    return `${format(parseISO(start), "dd MMM", { locale: es })} - ${format(parseISO(end), "dd MMM, yyyy", { locale: es })}`;
+  };
+
+  const renderHeaderComponent = () => (
+    <>
       <View style={styles.header}>
         <Text style={styles.title}>Mis Presupuestos</Text>
         <TouchableOpacity 
@@ -183,213 +138,192 @@ const PresupuestosScreen = () => {
           <Icon name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
-
-      {presupuestos.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Icon name="wallet-outline" size={50} color="#cbd5e1" />
-          <Text style={styles.emptyText}>No tienes presupuestos</Text>
-          <Text style={styles.emptySubtext}>
-            Crea tu primer presupuesto para empezar a controlar tus gastos
-          </Text>
-          <Pressable
-            style={styles.button}
-            onPress={() => navigation.navigate('AgregarPresupuestoScreen')}
-          >
-            <Text style={styles.buttonText}>Crear Presupuesto</Text>
-          </Pressable>
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>Resumen General</Text>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Total Presupuestado</Text>
+            <Text style={styles.summaryValue}>
+              {presupuestos.reduce((sum, p) => sum + p.cantidad, 0).toFixed(2)}€
+            </Text>
+          </View>
+          <View style={[styles.summaryItem, {alignItems: 'flex-end'}]}>
+            <Text style={styles.summaryLabel}>Total Gastado</Text>
+            <Text style={styles.summaryValue}>
+              {presupuestos.reduce((sum, p) => sum + p.gastado, 0).toFixed(2)}€
+            </Text>
+          </View>
         </View>
-      ) : (
-        <>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Resumen</Text>
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Total presupuestado</Text>
-                <Text style={styles.summaryValue}>
-                  {presupuestos.reduce((sum, p) => sum + p.cantidad, 0).toFixed(2)}€
-                </Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Total gastado</Text>
-                <Text style={styles.summaryValue}>
-                  {presupuestos.reduce((sum, p) => sum + p.gastado, 0).toFixed(2)}€
-                </Text>
-              </View>
+      </View>
+    </>
+  );
+
+  const renderPresupuestoItem = ({ item }: { item: Presupuesto }) => {
+    const porcentaje = item.cantidad > 0 ? (item.gastado / item.cantidad) * 100 : 0;
+    const porcentajeWidth = Math.min(porcentaje, 100);
+    const restante = item.cantidad - item.gastado;
+    const isOverBudget = item.gastado > item.cantidad;
+    const progressBarColor = isOverBudget ? '#ef4444' : porcentaje > 90 ? '#f59e0b' : '#22c55e';
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.categoryContainer}>
+            <View style={[styles.categoriaIcon, { backgroundColor: getCategoriaColor(item.categoriaId) }]}>
+              <Icon name={getIconByCategory(item.categoriaNombre)} size={24} color="white" />
+            </View>
+            <View>
+              <Text style={styles.categoryName}>{item.categoriaNombre}</Text>
+              <Text style={styles.dateText}>{formatDateRange(item.fechaInicio, item.fechaFin)}</Text>
             </View>
           </View>
+          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+            <Icon name="trash-outline" size={22} color="#94a3b8" />
+          </TouchableOpacity>
+        </View>
 
-          {presupuestos.map((presupuesto) => {
-            const porcentaje = Math.min(
-              (presupuesto.gastado / presupuesto.cantidad) * 100,
-              100
-            );
-            const restante = presupuesto.cantidad - presupuesto.gastado;
-            const isOverBudget = presupuesto.gastado > presupuesto.cantidad;
+        <View style={styles.amountsRow}>
+            <Text style={styles.amountGastado}>{item.gastado.toFixed(2)}€ Gastado</Text>
+            <Text style={styles.amountPresupuestado}>{item.cantidad.toFixed(2)}€</Text>
+        </View>
+        
+        <View style={styles.progressBarBackground}>
+          <View style={[styles.progressBarFill, { width: `${porcentajeWidth}%`, backgroundColor: progressBarColor }]}/>
+        </View>
 
-            return (
-              <View key={presupuesto.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  
-                  <View style={styles.categoryContainer}>
-                    <View style={[styles.categoriaIcon, { backgroundColor: getCategoriaColor(presupuesto.categoriaId) }]}>
-                      <Icon 
-                        name={presupuesto.icono || 'wallet-outline'} 
-                        size={24} 
-                        color="white" 
-                      />
-                    </View>
-                    
-                    <Text style={styles.category}>
-                      {presupuesto.categoriaNombre}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={() => handleDelete(presupuesto.id)}>
-                    <Icon name="trash-outline" size={20} color="#dc2626" />
-                  </TouchableOpacity>
-                </View>
+        <View style={styles.progressInfo}>
+            <Text style={styles.percentageText}>{porcentaje.toFixed(0)}% Usado</Text>
+            <Text style={[styles.restanteText, isOverBudget && styles.overBudgetText]}>
+              {isOverBudget ? `Excedido por ${(restante * -1).toFixed(2)}€` : `Quedan ${restante.toFixed(2)}€`}
+            </Text>
+        </View>
 
-                <View style={styles.datesContainer}>
-                  <Text style={styles.dateText}>
-                    {formatDate(presupuesto.fechaInicio)} - {formatDate(presupuesto.fechaFin)}
-                  </Text>
-                </View>
+        <TouchableOpacity style={styles.detailsButton} onPress={() => navigation.navigate('DetallePresupuestoScreen', { presupuestoId: item.id })}>
+          <Text style={styles.detailsButtonText}>Ver Detalles</Text>
+          <Icon name="chevron-forward" size={16} color="#2563eb" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+  
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563eb" />
+      </View>
+    );
+  }
 
-                <View style={styles.progressContainer}>
-                  <View style={styles.amountsRow}>
-                    <Text style={styles.amountGastado}>
-                      Gastado: {presupuesto.gastado.toFixed(2)}€
-                    </Text>
-                    <Text style={styles.amountPresupuestado}>
-                      Presupuesto: {presupuesto.cantidad.toFixed(2)}€
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.progressBarBackground}>
-                    <View
-                      style={[
-                        styles.progressBarFill,
-                        { 
-                          width: `${porcentaje}%`,
-                          backgroundColor: isOverBudget ? '#dc2626' : 
-                            porcentaje > 80 ? '#f59e0b' : '#2563eb'
-                        }
-                      ]}
-                    />
-                  </View>
-
-                  <View style={styles.progressInfo}>
-                    <Text style={[
-                      styles.percentage,
-                      isOverBudget && styles.percentageOver
-                    ]}>
-                      {porcentaje.toFixed(0)}%
-                    </Text>
-                    <Text style={styles.restante}>
-                      {isOverBudget ? (
-                        <Text style={styles.overBudget}>
-                          Excedido: {(presupuesto.gastado - presupuesto.cantidad).toFixed(2)}€
-                        </Text>
-                      ) : (
-                        `Restante: ${restante.toFixed(2)}€`
-                      )}
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.detailsButton}
-                  onPress={() => navigation.navigate('DetallePresupuestoScreen', { 
-                    presupuestoId: presupuesto.id 
-                  })}
-                >
-                  <Text style={styles.detailsButtonText}>Ver detalles</Text>
-                  <Icon name="chevron-forward" size={16} color="#2563eb" />
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </>
-      )}
-    </ScrollView>
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={presupuestos}
+        renderItem={renderPresupuestoItem}
+        keyExtractor={(item) => item.id.toString()}
+        ListHeaderComponent={renderHeaderComponent}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Icon name="wallet-outline" size={50} color="#cbd5e1" />
+            <Text style={styles.emptyText}>No tienes presupuestos activos.</Text>
+            <Text style={styles.emptySubtext}>Crea uno para empezar a controlar tus gastos por categoría.</Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={() => navigation.navigate('AgregarPresupuestoScreen')}
+            >
+              <Text style={styles.emptyButtonText}>Crear Presupuesto</Text>
+            </TouchableOpacity>
+          </View>
+        }
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']}/>}
+      />
+    </View>
   );
 };
 
+// --- Funciones Auxiliares y Estilos ---
 const getCategoriaColor = (id: number) => {
   const colors: { [key: number]: string } = {
-    1: '#ef4444', // Comida
-    2: '#3b82f6', // Transporte
-    3: '#10b981', // Hogar
-    5: '#8b5cf6', // Salud
-    6: '#f59e0b', // Ocio
-    8: '#ec4899', // Educación
-    9: '#018a04', // Suscripciones
-    10: '#64748b'  // Otros
-
+    1: '#ef4444', 2: '#3b82f6', 3: '#22c55e', 5: '#a855f7', 6: '#f59e0b', 8: '#ec4899', 9: '#0ea5e9', 10: '#64748b'
   };
-  return colors[id] || '#64748b';
+  return colors[id] || '#6b7280';
+};
+
+const getIconByCategory = (categoryName: string) => {
+    const name = categoryName.toLowerCase();
+    const icons: { [key: string]: string } = {
+      'alimentación': 'fast-food-outline', 'transporte': 'car-outline', 'ocio': 'game-controller-outline',
+      'salud': 'medkit-outline', 'hogar': 'home-outline', 'educación': 'school-outline',
+      'ropa': 'shirt-outline', 'suscripciones': 'card-outline',
+    };
+    return icons[name] || 'wallet-outline';
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 16, // Mantiene el padding lateral
-    paddingTop: 16,       // Mantiene el padding superior
-    paddingBottom: 80,    // Aumenta el padding inferior para dejar espacio a la tab bar (ajusta este valor según necesites, 70-100 suele funcionar bien)
+    backgroundColor: '#f1f5f9',
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f1f5f9',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+    marginBottom: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#0f172a',
   },
   addButton: {
     backgroundColor: '#2563eb',
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyState: {
-    alignItems: 'center',
+  emptyContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 60, // Este padding es para el contenido del emptyState en sí
-    paddingHorizontal: 30,
-    // Si el emptyState es el único contenido, el paddingBottom del container principal le dará espacio.
+    alignItems: 'center',
+    padding: 40,
+    marginTop: '20%',
   },
   emptyText: {
     fontSize: 18,
-    color: '#64748b',
-    marginTop: 15,
+    fontWeight: '600',
+    color: '#334155',
+    marginTop: 16,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#64748b',
     marginTop: 8,
     textAlign: 'center',
-    marginBottom: 25,
+    marginBottom: 24,
+    lineHeight: 20,
   },
-  button: {
+  emptyButton: {
     backgroundColor: '#2563eb',
-    padding: 15,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
   },
-  buttonText: {
+  emptyButtonText: {
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
@@ -397,19 +331,19 @@ const styles = StyleSheet.create({
   summaryCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 3,
   },
   summaryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 12,
+    color: '#1f2937',
+    marginBottom: 16,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -421,21 +355,21 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 14,
     color: '#64748b',
+    marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1e293b',
-    marginTop: 4,
+    color: '#1f2937',
   },
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
     marginBottom: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 3,
   },
@@ -443,88 +377,89 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 16,
   },
   categoryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1
+    flex: 1,
+    marginRight: 10,
   },
   categoriaIcon: {
-    ...globalStyles.categoriaIcon,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  category: {
+  categoryName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#1e293b',
   },
-  datesContainer: {
-    marginBottom: 16,
-  },
   dateText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748b',
-  },
-  progressContainer: {
-    marginBottom: 12,
   },
   amountsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
     marginBottom: 8,
   },
   amountGastado: {
     fontSize: 14,
-    color: '#1e293b',
+    color: '#334155',
   },
   amountPresupuestado: {
     fontSize: 14,
-    color: '#1e293b',
+    color: '#334155',
     fontWeight: '600',
   },
   progressBarBackground: {
     backgroundColor: '#e2e8f0',
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 8,
+    height: 10,
+    borderRadius: 5,
+    marginHorizontal: 16,
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 5,
   },
   progressInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginTop: 8,
   },
-  percentage: {
-    fontSize: 14,
-    color: '#2563eb',
-    fontWeight: '600',
+  percentageText: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
   },
-  percentageOver: {
-    color: '#dc2626',
+  restanteText: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
   },
-  restante: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  overBudget: {
-    color: '#dc2626',
+  overBudgetText: {
+    color: '#ef4444',
+    fontWeight: 'bold',
   },
   detailsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
-    marginTop: 8,
+    marginTop: 16,
   },
   detailsButtonText: {
     color: '#2563eb',
     fontWeight: '600',
-    marginRight: 5,
+    marginRight: 6,
   },
 });
 

@@ -227,9 +227,9 @@ namespace GastAPI.Controllers
             return NoContent();
         }
 
-        [HttpGet("categoria/{id_categoria}")]
+        [HttpGet("categoria/{categoriaId}")]
         [Authorize]
-        public async Task<IActionResult> GetGastosPorCategoria(long id_categoria)
+        public async Task<IActionResult> GetGastosPorCategoria(long categoriaId)
         {
             var identity = HttpContext.User.Identity as ClaimsIdentity;
             var userIdClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
@@ -239,7 +239,7 @@ namespace GastAPI.Controllers
             var userId = long.Parse(userIdClaim.Value);
 
             var gastos = await _context.Gastos
-                .Where(g => g.UsuarioId == userId && g.CategoriaId == id_categoria)
+                .Where(g => g.UsuarioId == userId && g.CategoriaId == categoriaId)
                 .ToListAsync();
 
             return Ok(gastos);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback  } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,57 +7,99 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
-import { Picker } from "@react-native-picker/picker";
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 import { API_BASE_URL } from '../../api/urlConnection';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import globalStyles from '../../styles/index';
-
-// Para que se actualice automaticamente la pestaña cuando se crea un gasto
 import { useFocusEffect } from '@react-navigation/native';
 
+// --- Interfaces y Tipos ---
+interface Gasto {
+  id: number;
+  descripcion: string;
+  cantidad: number;
+  fecha: string;
+  nota?: string;
+  categoriaId: number;
+  activo: boolean;
+}
 
+interface FiltroOpcion {
+  label: string;
+  value: string | number;
+}
+
+// --- Componente Reutilizable para los Botones de Filtro ---
+const FilterButton: React.FC<{ label: string; value: string; onPress: () => void }> = ({ label, value, onPress }) => (
+  <View style={styles.filterButtonContainer}>
+    <Text style={styles.filterLabel}>{label}</Text>
+    <TouchableOpacity style={styles.filterButton} onPress={onPress}>
+      <Text style={styles.filterButtonText}>{value}</Text>
+      <Icon name="chevron-down" size={16} color="#64748b" />
+    </TouchableOpacity>
+  </View>
+);
+
+// --- Componente Principal ---
 export default function GastosScreen({ navigation }: any) {
   const { token } = useAuth();
-  const [gastos, setGastos] = useState<any[]>([]);
+  const [gastos, setGastos] = useState<Gasto[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Filtrar por categoría
   const [filtroCategoria, setFiltroCategoria] = useState('');
-  const [gastosFiltrados, setGastosFiltrados] = useState<any[]>([]);
+  const [gastosFiltrados, setGastosFiltrados] = useState<Gasto[]>([]);
 
-  // Filtrar por fecha
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth() + 1);
   const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
   const [totalMes, setTotalMes] = useState(0);
 
+  const [showCategoriaModal, setShowCategoriaModal] = useState(false);
+  const [showMesModal, setShowMesModal] = useState(false);
+  const [showAnioModal, setShowAnioModal] = useState(false);
 
+  // --- Datos para los Filtros ---
+  const categoriasFiltro: FiltroOpcion[] = [
+    { label: '-- Todas las Categorías --', value: '' },
+    { label: 'Alimentación', value: 1 },
+    { label: 'Transporte', value: 2 },
+    { label: 'Salud', value: 3 },
+    { label: 'Hogar', value: 5 },
+    { label: 'Ocio', value: 6 },
+    { label: 'Educación', value: 8 },
+    { label: 'Otros', value: 10 },
+  ];
 
+  const mesesFiltro: FiltroOpcion[] = Array.from({ length: 12 }, (_, i) => ({
+    label: format(new Date(2000, i, 1), 'MMMM', { locale: es }),
+    value: i + 1,
+  }));
+
+  const aniosFiltro: FiltroOpcion[] = Array.from({ length: 5 }, (_, i) => {
+    const year = new Date().getFullYear() - i;
+    return { label: year.toString(), value: year };
+  });
 
   const fetchGastos = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/gastos`, {
+      const res = await axios.get<Gasto[]>(`${API_BASE_URL}/api/gastos`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const filtradas = res.data.filter((gasto: any) => gasto.categoriaId !== 9);
+      const gastosSinSuscripciones = res.data.filter(g => g.categoriaId !== 9);
 
-
-      const gastosOrdenados = filtradas.sort((a: any, b: any) => 
+      const gastosOrdenados = gastosSinSuscripciones.sort((a, b) => 
         new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
       );
 
       setGastos(gastosOrdenados);
-      const totalCalculado = gastosOrdenados.reduce(
-        (sum: number, gasto: any) => sum + gasto.cantidad,
-        0
-      );
+      const totalCalculado = gastosOrdenados.reduce((sum, gasto) => sum + gasto.cantidad, 0);
       setTotal(totalCalculado);
     } catch (error) {
       console.error('Error obteniendo gastos:', error);
@@ -73,77 +115,53 @@ export default function GastosScreen({ navigation }: any) {
     }, [])
   );
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchGastos();
-  };
+  }, []);
 
-  const handleAgregarGasto = () => {
-    navigation.navigate('AgregarGastoScreen');
-  };
+  const handleAgregarGasto = () => navigation.navigate('AgregarGastoScreen');
 
-  const formatFecha = (fechaString: string) => {
-    return format(new Date(fechaString), "dd MMM yyyy", { locale: es });
-  };
+  const formatFecha = (fechaString: string) => format(new Date(fechaString), "dd MMM yyyy", { locale: es });
 
   useEffect(() => {
     const filtrados = gastos.filter((g) => {
       const fecha = new Date(g.fecha);
-
-      const coincideMes = (fecha.getMonth() + 1) === mesSeleccionado;
+      const coincideMes = fecha.getMonth() + 1 === mesSeleccionado;
       const coincideAnio = fecha.getFullYear() === anioSeleccionado;
       const coincideCategoria = filtroCategoria === '' || g.categoriaId.toString() === filtroCategoria;
-      const estaActivo = g.activo !== false;
-
-      return estaActivo && coincideMes && coincideAnio && coincideCategoria;
+      return g.activo !== false && coincideMes && coincideAnio && coincideCategoria;
     });
 
     setGastosFiltrados(filtrados);
+
+    const totalDelMes = filtrados.reduce((sum, g) => sum + g.cantidad, 0);
+    setTotalMes(totalDelMes);
+
   }, [filtroCategoria, gastos, mesSeleccionado, anioSeleccionado]);
 
-  useEffect(() => {
-    const gastosDelMes = gastos.filter((g) => {
-      const fecha = new Date(g.fecha);
-      return (
-        g.activo !== false &&
-        (fecha.getMonth() + 1) === mesSeleccionado &&
-        fecha.getFullYear() === anioSeleccionado
-      );
-    });
-
-    const totalDelMes = gastosDelMes.reduce((sum, g) => sum + g.cantidad, 0);
-    setTotalMes(totalDelMes);
-  }, [gastos, mesSeleccionado, anioSeleccionado]);
-
-  const renderGastoItem = ({ item }: { item: any }) => (
+  const renderGastoItem = ({ item }: { item: Gasto }) => (
     <TouchableOpacity
       style={styles.listItem}
-      onPress={() => navigation.navigate('DetalleGastoScreen', {
-        gastoId: item.id,
-        title: 'Detalle del Gasto'
-      })}
+      onPress={() => navigation.navigate('DetalleGastoScreen', { gastoId: item.id })}
     >
       <View style={styles.itemLeft}>
         <View style={[styles.categoriaIcon, { backgroundColor: getCategoriaColor(item.categoriaId) }]}>
-          <Icon 
-            name={getCategoriaIcon(item.categoriaId)} 
-            size={24} 
-            color="white" 
-          />
+          <Icon name={getCategoriaIcon(item.categoriaId)} size={24} color="white" />
         </View>
         <View style={styles.itemTextContainer}>
-          <Text style={styles.listItemText}>{item.descripcion}</Text>
+          <Text style={styles.listItemText} numberOfLines={1}>{item.descripcion}</Text>
           <Text style={styles.fechaText}>{formatFecha(item.fecha)}</Text>
           {item.nota && (
             <Text style={styles.notaText} numberOfLines={1}>
-              <Icon name="document-text-outline" size={14} color="#666" /> {item.nota}
+              <Icon name="document-text-outline" size={14} color="#64748b" /> {item.nota}
             </Text>
           )}
         </View>
       </View>
       <View style={styles.itemRight}>
         <Text style={styles.montoText}>{item.cantidad.toFixed(2)}€</Text>
-        <Icon name="chevron-forward" size={20} color="#999" />
+        <Icon name="chevron-forward" size={20} color="#cbd5e1" />
       </View>
     </TouchableOpacity>
   );
@@ -165,125 +183,116 @@ export default function GastosScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* Resumen */}
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Resumen</Text>
         <View style={styles.summaryRow}>
-          <View style={styles.summaryColumn}>
-            <Text style={styles.summaryLabel}>Total histórico</Text>
-            <Text style={styles.summaryValue}>{total.toFixed(2)}€</Text>
-          </View>
-          <View style={styles.summaryColumn}>
-            <Text style={styles.summaryLabel}>Total mes selecionado</Text>
-            <Text style={styles.summaryValue}>{totalMes.toFixed(2)}€</Text>
-          </View>
+          <Text style={styles.summaryLabel}>Total del Mes ({mesesFiltro.find(m => m.value === mesSeleccionado)?.label})</Text>
+          <Text style={styles.summaryValue}>{totalMes.toFixed(2)}€</Text>
         </View>
       </View>
 
       <View style={styles.filtrosContainer}>
-        {/* Categoría */}
-        <View style={styles.pickerCard}>
-          <Text style={styles.pickerLabel}>Filtrar por categoría</Text>
-          <Picker
-            selectedValue={filtroCategoria}
-            onValueChange={(valor) => setFiltroCategoria(valor)}
-            style={styles.picker}
-          >
-            <Picker.Item label="-- Todas --" value="" />
-            <Picker.Item label="Alimentación" value="1" />
-            <Picker.Item label="Transporte" value="2" />
-            <Picker.Item label="Salud" value="3" />
-            <Picker.Item label="Hogar" value="5" />
-            <Picker.Item label="Ocio" value="6" />
-            <Picker.Item label="Educación" value="8" />
-            <Picker.Item label="Otros" value="10" />
-          </Picker>
-        </View>
-
-        {/* Fecha (Mes y Año) */}
-        <View style={styles.pickerCard}>
-          <Text style={styles.pickerLabel}>Filtrar por fecha</Text>
-          <Picker
-            selectedValue={mesSeleccionado}
-            onValueChange={(value) => setMesSeleccionado(value)}
-            style={[styles.picker, { marginBottom: 8 }]}
-          >
-            {Array.from({ length: 12 }, (_, i) => (
-              <Picker.Item
-                key={i + 1}
-                label={format(new Date(2000, i, 1), 'MMMM', { locale: es })}
-                value={i + 1}
-              />
-            ))}
-          </Picker>
-          <Picker
-            selectedValue={anioSeleccionado}
-            onValueChange={(value) => setAnioSeleccionado(value)}
-            style={styles.picker}
-          >
-            {Array.from({ length: 5 }, (_, i) => {
-              const year = new Date().getFullYear() - i;
-              return <Picker.Item key={year} label={year.toString()} value={year} />;
-            })}
-          </Picker>
-        </View>
+        <FilterButton
+          label="Categoría"
+          value={categoriasFiltro.find(c => c.value === filtroCategoria)?.label || '-- Todas --'}
+          onPress={() => setShowCategoriaModal(true)}
+        />
+        <FilterButton
+          label="Mes"
+          value={mesesFiltro.find(m => m.value === mesSeleccionado)?.label || 'Seleccionar'}
+          onPress={() => setShowMesModal(true)}
+        />
+        <FilterButton
+          label="Año"
+          value={anioSeleccionado.toString()}
+          onPress={() => setShowAnioModal(true)}
+        />
       </View>
 
-
-
-      {/* Lista de gastos */}
       <FlatList
         data={gastosFiltrados}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderGastoItem}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#2563eb']}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Icon name="receipt-outline" size={50} color="#ccc" />
-            <Text style={styles.emptyText}>No hay gastos registrados</Text>
-            <TouchableOpacity 
-              style={styles.emptyButton}
-              onPress={handleAgregarGasto}
-            >
-              <Text style={styles.emptyButtonText}>Agregar Gasto</Text>
-            </TouchableOpacity>
+            <Icon name="receipt-outline" size={50} color="#cbd5e1" />
+            <Text style={styles.emptyText}>No hay gastos que coincidan con los filtros.</Text>
           </View>
         }
+        contentContainerStyle={styles.listContentContainer}
       />
+      
+      <Modal visible={showCategoriaModal} transparent animationType="slide" onRequestClose={() => setShowCategoriaModal(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowCategoriaModal(false)}>
+          <View style={styles.modalOverlay} />
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Filtrar por Categoría</Text>
+          <FlatList
+            data={categoriasFiltro}
+            keyExtractor={(item) => item.value.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.modalOption} onPress={() => { setFiltroCategoria(item.value.toString()); setShowCategoriaModal(false); }}>
+                <Text style={styles.modalOptionText}>{item.label}</Text>
+                {filtroCategoria === item.value && <Icon name="checkmark-circle" size={24} color="#2563eb" />}
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
+
+      <Modal visible={showMesModal} transparent animationType="slide" onRequestClose={() => setShowMesModal(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowMesModal(false)}>
+          <View style={styles.modalOverlay} />
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Seleccionar Mes</Text>
+          <FlatList
+            data={mesesFiltro}
+            keyExtractor={(item) => item.value.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.modalOption} onPress={() => { setMesSeleccionado(Number(item.value)); setShowMesModal(false); }}>
+                <Text style={styles.modalOptionText}>{item.label}</Text>
+                {mesSeleccionado === item.value && <Icon name="checkmark-circle" size={24} color="#2563eb" />}
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
+
+      <Modal visible={showAnioModal} transparent animationType="slide" onRequestClose={() => setShowAnioModal(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowAnioModal(false)}>
+          <View style={styles.modalOverlay} />
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Seleccionar Año</Text>
+          <FlatList
+            data={aniosFiltro}
+            keyExtractor={(item) => item.value.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.modalOption} onPress={() => { setAnioSeleccionado(Number(item.value)); setShowAnioModal(false); }}>
+                <Text style={styles.modalOptionText}>{item.label}</Text>
+                {anioSeleccionado === item.value && <Icon name="checkmark-circle" size={24} color="#2563eb" />}
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
+
     </View>
   );
 }
 
-// Funciones auxiliares para categorías
 const getCategoriaColor = (id: number) => {
   const colors: { [key: number]: string } = {
-    1: '#ef4444', // Comida
-    2: '#3b82f6', // Transporte
-    3: '#10b981', // Hogar
-    5: '#8b5cf6', // Salud
-    6: '#f59e0b', // Ocio
-    8: '#ec4899', // Educación
-    10: '#64748b'  // Otros
-
+    1: '#ef4444', 2: '#3b82f6', 3: '#22c55e', 5: '#a855f7', 6: '#f59e0b', 8: '#ec4899', 10: '#64748b'
   };
   return colors[id] || '#64748b';
 };
 
 const getCategoriaIcon = (id: number) => {
   const icons: { [key: number]: string } = {
-    1: 'fast-food-outline',
-    2: 'car-outline',
-    5: 'home-outline',
-    6: 'game-controller-outline',
-    3: 'medkit-outline',
-    8: 'school-outline',
-    10: 'ellipsis-horizontal-outline'
+    1: 'fast-food-outline', 2: 'car-outline', 5: 'home-outline', 6: 'game-controller-outline', 3: 'medkit-outline', 8: 'school-outline', 10: 'ellipsis-horizontal-outline'
   };
   return icons[id] || 'ellipsis-horizontal-outline';
 };
@@ -291,30 +300,32 @@ const getCategoriaIcon = (id: number) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f1f5f9',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f1f5f9',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#0f172a',
   },
   addButton: {
     backgroundColor: '#2563eb',
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -322,63 +333,86 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
+    marginTop: 8,
+    marginHorizontal: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 3,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 12,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  summaryColumn: {
-    flex: 1,
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   summaryLabel: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 4,
+    fontSize: 16,
+    color: '#475569',
   },
   summaryValue: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: 'bold',
     color: '#0f172a',
   },
-  totalText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1e293b',
+  filtrosContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    gap: 12,
   },
-  listItem: {
+  filterButtonContainer: {
+    flex: 1,
+  },
+  filterLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+    paddingLeft: 4,
+  },
+  filterButton: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  listContentContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'white',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 1,
   },
   itemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 10,
   },
   categoriaIcon: {
-    ...globalStyles.categoriaIcon
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   itemTextContainer: {
     flex: 1,
@@ -387,17 +421,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 2,
   },
   fechaText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748b',
-    marginBottom: 4,
+    marginTop: 2,
   },
   notaText: {
     fontSize: 13,
     color: '#64748b',
     fontStyle: 'italic',
+    marginTop: 4,
   },
   itemRight: {
     flexDirection: 'row',
@@ -406,65 +440,54 @@ const styles = StyleSheet.create({
   montoText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2563eb',
-    marginRight: 8,
+    color: '#1e293b',
+    marginRight: 4,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
+    marginTop: 50,
   },
   emptyText: {
-    fontSize: 18,
-    color: '#94a3b8',
-    marginVertical: 16,
+    fontSize: 16,
+    color: '#64748b',
+    marginTop: 16,
     textAlign: 'center',
   },
-  emptyButton: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
-  emptyButtonText: {
-    color: 'white',
-    fontWeight: '600',
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    maxHeight: '70%',
   },
-  pickerText: {
-    fontSize: 16,
-    marginBottom: 4,
-    color: "#64748b"
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#1e293b',
   },
-    filtrosContainer: {
+  modalOption: {
+    paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 12,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
-
-  pickerCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+  modalOptionText: {
+    fontSize: 16,
+    color: '#334155',
   },
-
-  pickerLabel: {
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
-  },
-
-  picker: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-  },
-
-
 });

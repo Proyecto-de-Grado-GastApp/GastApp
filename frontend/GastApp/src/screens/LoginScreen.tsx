@@ -24,8 +24,6 @@ const LoginScreen = () => {
     try {
       const { token, userId } = await loginUser(email, password);
       await login(token, userId);
-
-      Alert.alert('Éxito', 'Inicio de sesión exitoso');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo iniciar sesión');
     }
@@ -68,14 +66,15 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingBottom: 80,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#ffffff',
     paddingHorizontal: 24,
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 120,
+    height: 120,
     marginBottom: 20,
     alignSelf: 'center',
   },

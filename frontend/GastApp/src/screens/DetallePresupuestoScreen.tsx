@@ -61,44 +61,66 @@ const DetallePresupuestoScreen: React.FC<Props> = ({ navigation, route }) => {
   const fetchPresupuesto = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/presupuestos/${presupuestoId}`, {
+      
+      const presupuestoRes = await axios.get(`${API_BASE_URL}/api/presupuestos/${presupuestoId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      if (!presupuestoRes.data || !presupuestoRes.data.categoriaId) {
+        throw new Error('Datos del presupuesto incompletos');
+      }
+
       const gastosRes = await axios.get(
-        `${API_BASE_URL}/api/gastos/categoria/${res.data.categoriaId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_BASE_URL}/api/gastos/por-categoria/${presupuestoRes.data.categoriaId}`, 
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            fechaInicio: presupuestoRes.data.fechaInicio,
+            fechaFin: presupuestoRes.data.fechaFin
+          }
+        }
       );
 
-      const gastosEnRango = gastosRes.data
-        .filter((g: any) => {
-          const fecha = new Date(g.fecha);
-          return (
-            fecha >= new Date(res.data.fechaInicio) &&
-            fecha <= new Date(res.data.fechaFin)
-          );
-        })
-        .map((g: any) => ({
-          id: g.id,
-          descripcion: g.descripcion,
-          cantidad: g.cantidad,
-          fecha: g.fecha,
-        }));
+      const gastosEnRango = Array.isArray(gastosRes.data) 
+        ? gastosRes.data.map((g: any) => ({
+            id: g.id,
+            descripcion: g.descripcion || 'Sin descripción',
+            cantidad: g.cantidad || 0,
+            fecha: g.fecha || new Date().toISOString(),
+          }))
+        : [];
 
       const totalGastado = gastosEnRango.reduce(
-        (sum: number, g: any) => sum + g.cantidad,
+        (sum: number, g: any) => sum + (g.cantidad || 0),
         0
       );
 
       setPresupuesto({
-        ...res.data,
+        id: presupuestoRes.data.id,
+        categoriaId: presupuestoRes.data.categoriaId,
+        categoriaNombre: presupuestoRes.data.categoriaNombre || 'Sin categoría',
+        cantidad: presupuestoRes.data.cantidad || 0,
+        fechaInicio: presupuestoRes.data.fechaInicio,
+        fechaFin: presupuestoRes.data.fechaFin,
         gastado: totalGastado,
         gastos: gastosEnRango,
-        icono: getIconByCategory(res.data.categoriaNombre),
+        icono: getIconByCategory(presupuestoRes.data.categoriaNombre),
       });
+      
     } catch (error) {
       console.error('Error obteniendo presupuesto:', error);
-      Alert.alert('Error', 'No se pudo cargar el presupuesto');
+      
+      let errorMessage = 'No se pudo cargar el presupuesto';
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          errorMessage = 'Presupuesto no encontrado';
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+      
+      Alert.alert('Error', errorMessage);
+      navigation.goBack();
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -121,12 +143,41 @@ const DetallePresupuestoScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const formatDate = (dateString: string) => {
-    return format(parseISO(dateString), "dd MMM yyyy", { locale: es });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        const parts = dateString.split(/[-T:]/);
+        const adjustedDate = new Date(
+          parseInt(parts[0]),
+          parseInt(parts[1]) - 1,
+          parseInt(parts[2])
+        );
+        return format(adjustedDate, "dd MMM yyyy", { locale: es });
+      }
+      return format(date, "dd MMM yyyy", { locale: es });
+    } catch (error) {
+      console.error('Error formateando fecha:', error);
+      return 'Fecha inválida';
+    }
   };
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchPresupuesto();
+  };
+
+  const handleEditPress = () => {
+    if (!presupuesto) return;
+    
+    navigation.navigate('EditarPresupuestoScreen', { 
+      presupuestoId: presupuesto.id,
+      presupuestoData: {
+        categoriaId: presupuesto.categoriaId,
+        cantidad: presupuesto.cantidad,
+        fechaInicio: presupuesto.fechaInicio,
+        fechaFin: presupuesto.fechaFin
+      }
+    });
   };
 
   useEffect(() => {
@@ -169,7 +220,9 @@ const DetallePresupuestoScreen: React.FC<Props> = ({ navigation, route }) => {
           <Icon name="arrow-back" size={24} color="#2563eb" />
         </TouchableOpacity>
         <Text style={styles.title}>Detalle de Presupuesto</Text>
-        <View style={{ width: 24 }} />
+        <TouchableOpacity onPress={handleEditPress}>
+          <Icon name="create-outline" size={24} color="#2563eb" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.card}>

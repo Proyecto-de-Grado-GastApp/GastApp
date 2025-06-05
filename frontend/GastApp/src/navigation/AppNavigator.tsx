@@ -27,13 +27,15 @@ import EditarSuscripcionScreen from '../screens/suscripciones/EditarSuscripcionS
 import { GastosProvider } from '../contexts/GastosContext';
 import DetalleSuscripcionScreen from '../screens/suscripciones/DetalleSuscripcionesScreen';
 import DetallePresupuestoScreen from '../screens/DetallePresupuestoScreen';
+import CrearEtiquetaScreen from '../screens/CrearEtiquetaScreen';
+import EtiquetasScreen from '../screens/EtiquetasScreen';
+import EditarPresupuestoScreen from '../screens/EditarPresupuestoScreen';
 
 import axios from 'axios';
 import { API_BASE_URL } from '../api/urlConnection';
 
 // Tipos para las rutas
 export type RootStackParamList = {
-  MainApp: undefined;
   Login: undefined;
   Register: undefined;
   MainTabs: undefined;
@@ -63,6 +65,17 @@ export type RootStackParamList = {
   };
   DetallePresupuestoScreen: { presupuestoId: number };
   AgregarPresupuestoScreen: undefined;
+  CrearEtiquetaScreen: undefined;
+  EtiquetasScreen: undefined;
+  EditarPresupuestoScreen: { 
+    presupuestoId: number;
+    presupuestoData: {
+      categoriaId: number;
+      cantidad: number;
+      fechaInicio: string;
+      fechaFin: string;
+    };
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -127,21 +140,32 @@ const MainTabs = () => {
             style={styles.logo}
             resizeMode="contain"
           />
-          <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
-            {userData?.imagenPerfil ? (
-              <Image 
-                source={{ 
-                  uri: userData.imagenPerfil.startsWith('http') 
-                    ? userData.imagenPerfil // Usa la URL directa si ya es completa
-                    : `${API_BASE_URL}${userData.imagenPerfil.startsWith('/') ? '' : '/'}${userData.imagenPerfil}`
-                }}
-                style={styles.avatar}
-                onError={(e) => console.log('Error cargando imagen:', e.nativeEvent.error)}
-              />
-            ) : (
-              <Icon name="person-outline" size={24} color="white" />
-            )}
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* Nuevo botón para las etiquetas */}
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('EtiquetasScreen')}
+              style={{ marginRight: 30 }}
+            >
+              <Icon name="pricetags-outline" size={24} color="white" />
+            </TouchableOpacity>
+            
+            {/* Botón del perfil existente */}
+            <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
+              {userData?.imagenPerfil ? (
+                <Image 
+                  source={{ 
+                    uri: userData.imagenPerfil.startsWith('http') 
+                      ? userData.imagenPerfil
+                      : `${API_BASE_URL}${userData.imagenPerfil.startsWith('/') ? '' : '/'}${userData.imagenPerfil}`
+                  }}
+                  style={styles.avatar}
+                  onError={(e) => console.log('Error cargando imagen:', e.nativeEvent.error)}
+                />
+              ) : (
+                <Icon name="person-outline" size={24} color="white" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Tab Navigator */}
@@ -198,7 +222,7 @@ const AppNavigator = () => {
         }}
       >
         {token ? (
-          <>
+           <>
             <Stack.Screen
               name="MainTabs"
               component={MainTabs}
@@ -235,6 +259,18 @@ const AppNavigator = () => {
               component={DetallePresupuestoScreen}
               options={{ title: 'Detalle de Presupuesto' }}
             />
+            <Stack.Screen name="CrearEtiquetaScreen" component={CrearEtiquetaScreen} options={{ title: 'Crear Etiqueta' }} />
+             <Stack.Screen 
+              name="EtiquetasScreen" 
+              component={EtiquetasScreen} 
+              options={{ title: 'Mis Etiquetas' }}
+            />
+            <Stack.Screen 
+              name="EditarPresupuestoScreen" 
+              component={EditarPresupuestoScreen} 
+              options={{ title: 'Editar Presupuesto' }}
+            />
+
           </>
         ) : (
           <>

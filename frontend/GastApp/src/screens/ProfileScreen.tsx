@@ -232,6 +232,18 @@ const ProfileScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.containerBack}>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="arrow-back" size={24} color="#2563eb" />
+        </TouchableOpacity>
+        
+        <Text style={styles.headerTitle}>Mi Perfil</Text>
+        
+        <View style={styles.headerSpacer} />
+      </View>
       <View style={styles.header}>
         <Pressable onPress={() => setModalVisible(true)}>
           <Image
@@ -331,16 +343,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  header: {
+  containerBack:{
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 30,
+    justifyContent: 'space-between',
+    padding: 16,
     backgroundColor: 'white',
-    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
+  },
+  header: {
+    alignItems: 'center',
+      padding: 30,
+      backgroundColor: 'white',
+      marginBottom: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 6,
+      elevation: 3,
   },
   name: {
     fontSize: 22,
@@ -497,6 +524,26 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  backButton: {
+    padding: 2,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  headerSpacer: {
+    width: 24, // Igual que el ancho del botón para mantener centrado el título
   },
 });
 

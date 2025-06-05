@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Alert
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
@@ -14,68 +15,86 @@ import { API_BASE_URL } from '../../api/urlConnection';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import globalStyles from '../../styles/index';
-import { renderIcon } from '../../functions/index'
-
-// Para que se actualice automaticamente la pantalla cuando se crea una suscripción
 import { useFocusEffect } from '@react-navigation/native';
+import { renderIcon } from '../../functions/index';
 
+interface Suscripcion {
+  id: number;
+  descripcion: string;
+  cantidad: number;
+  fecha: string;
+  nota?: string;
+  categoriaId: number;
+}
 
 export default function SubscriptionsScreen({ navigation }: any) {
   const { token } = useAuth();
-  const [suscripciones, setSuscripciones] = useState<any[]>([]);
-  const [total, setTotal] = useState(0);
+  const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([]);
+  const [totalMensual, setTotalMensual] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchSuscripciones = async () => {
+    if (!token) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/gastos`, {
+      const res = await axios.get<Suscripcion[]>(`${API_BASE_URL}/api/gastos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const filtradas = res.data.filter((gasto: any) => gasto.categoriaId === 9);
+      const filtradas = res.data.filter((gasto: Suscripcion) => gasto.categoriaId === 9);
 
       const ordenadas = filtradas.sort(
-        (a: any, b: any) =>
+        (a: Suscripcion, b: Suscripcion) =>
           new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
       );
 
       setSuscripciones(ordenadas);
-      setTotal(
-        ordenadas.reduce((sum: number, g: any) => sum + g.cantidad, 0)
-      );
+
+      const mesActual = new Date().getMonth();
+      const anioActual = new Date().getFullYear();
+
+      const totalDelMes = ordenadas
+        .filter(susc => {
+          const fechaSusc = new Date(susc.fecha);
+          return fechaSusc.getMonth() === mesActual && fechaSusc.getFullYear() === anioActual;
+        })
+        .reduce((sum, g) => sum + g.cantidad, 0);
+
+      setTotalMensual(totalDelMes);
+
     } catch (error) {
       console.error('Error obteniendo suscripciones:', error);
+      Alert.alert("Error", "No se pudieron cargar las suscripciones.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Para que se actualice la pantalla cada vez que nos situemos en ella
   useFocusEffect(
     useCallback(() => {
-      if (token) {
-        fetchSuscripciones();
-      }
+      fetchSuscripciones();
     }, [token])
   );
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchSuscripciones();
-  };
+  }, [token]);
 
-  const handleAgregarGasto = () => {
+  const handleAgregarSuscripcion = () => {
     navigation.navigate('AgregarSuscripcionesScreen');
   };
 
   const formatFecha = (fechaString: string) => {
-    return format(new Date(fechaString), 'dd MMM yyyy', { locale: es });
+    return format(new Date(fechaString), "dd 'de' MMMM, yyyy", { locale: es });
   };
 
-  const renderGastoItem = ({ item }: { item: any }) => (
+  const renderSuscripcionItem = ({ item }: { item: Suscripcion }) => (
     <TouchableOpacity
       style={styles.listItem}
       onPress={() => navigation.navigate('DetalleSuscripcionScreen', {
@@ -84,22 +103,22 @@ export default function SubscriptionsScreen({ navigation }: any) {
       })}
     >
       <View style={styles.itemLeft}>
-        <View style={[styles.categoriaIcon]}>
+        <View style={styles.categoriaIcon}>
           {renderIcon(item.descripcion)}
         </View>
         <View style={styles.itemTextContainer}>
-          <Text style={styles.listItemText}>{item.descripcion}</Text>
-          <Text style={styles.fechaText}>{formatFecha(item.fecha)}</Text>
+          <Text style={styles.listItemText} numberOfLines={1}>{item.descripcion}</Text>
+          <Text style={styles.fechaText}>Próximo pago: {formatFecha(item.fecha)}</Text>
           {item.nota && (
             <Text style={styles.notaText} numberOfLines={1}>
-              <Icon name="document-text-outline" size={14} color="#666" /> {item.nota}
+              <Icon name="document-text-outline" size={14} color="#64748b" /> {item.nota}
             </Text>
           )}
         </View>
       </View>
       <View style={styles.itemRight}>
         <Text style={styles.montoText}>{item.cantidad.toFixed(2)}€</Text>
-        <Icon name="chevron-forward" size={20} color="#999" />
+        <Icon name="chevron-forward" size={20} color="#cbd5e1" />
       </View>
     </TouchableOpacity>
   );
@@ -118,21 +137,23 @@ export default function SubscriptionsScreen({ navigation }: any) {
         <Text style={styles.title}>Mis Suscripciones</Text>
         <TouchableOpacity 
           style={styles.addButton}
-          onPress={handleAgregarGasto}
+          onPress={handleAgregarSuscripcion}
         >
           <Icon name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Total Gastado en Suscripciones</Text>
-        <Text style={styles.totalText}>{total.toFixed(2)}€</Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Total de este Mes</Text>
+          <Text style={styles.summaryValue}>{totalMensual.toFixed(2)}€</Text>
+        </View>
       </View>
 
       <FlatList
         data={suscripciones}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={renderGastoItem}
+        renderItem={renderSuscripcionItem}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -142,128 +163,125 @@ export default function SubscriptionsScreen({ navigation }: any) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Icon name="repeat-outline" size={50} color="#ccc" />
-            <Text style={styles.emptyText}>No hay suscripciones registradas</Text>
+            <Icon name="repeat-outline" size={50} color="#cbd5e1" />
+            <Text style={styles.emptyText}>Aún no tienes suscripciones.{'\n'}¡Añade la primera!</Text>
             <TouchableOpacity
               style={styles.emptyButton}
-              onPress={handleAgregarGasto}
+              onPress={handleAgregarSuscripcion}
             >
-              <Text style={styles.emptyButtonText}>Agregar suscripción</Text>
+              <Text style={styles.emptyButtonText}>Agregar Suscripción</Text>
             </TouchableOpacity>
           </View>
         }
+        contentContainerStyle={styles.listContentContainer}
       />
     </View>
   );
 }
 
-// const getCategoriaIcon = (descripcion: string) => {
-//   const key = descripcion.toLowerCase().trim();
-//   const icons: { [key: string]: string } = {
-//     spotify: 'spotify',
-//     netflix: 'netflix',
-//     strava: 'strava',
-//     youtube: 'youtube',
-//     hbo: 'tv',
-//     prime: 'amazon',
-//     disney: 'film',
-//   };
-//   return icons[key] || 'apps';
-// };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f1f5f9',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f1f5f9',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#0f172a',
   },
   addButton: {
     backgroundColor: '#2563eb',
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   summaryCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
+    marginHorizontal: 16,
     marginBottom: 16,
+    marginTop: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 3,
   },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 12,
-  },
-  totalText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  listItem: {
+  summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 16,
+    color: '#475569',
+  },
+  summaryValue: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  listContentContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'white',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
-    marginBottom: 16, // Ajustado de 10 a 16
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    marginBottom: 10,
   },
   itemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 10,
   },
   categoriaIcon: {
-    ...globalStyles.categoriaIcon
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   itemTextContainer: {
     flex: 1,
   },
   listItemText: {
-    fontSize: 18, // Ajustado de 16 a 18
+    fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 2,
   },
   fechaText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748b',
-    marginBottom: 4,
+    marginTop: 2,
   },
   notaText: {
     fontSize: 13,
     color: '#64748b',
     fontStyle: 'italic',
+    marginTop: 4,
   },
   itemRight: {
     flexDirection: 'row',
@@ -271,29 +289,30 @@ const styles = StyleSheet.create({
   },
   montoText: {
     fontSize: 16,
-    fontWeight: '600', // Ajustado de 'bold' a '600'
-    color: '#2563eb',
-    marginRight: 8,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginRight: 4,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 30,
+    padding: 40,
+    marginTop: 50,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#64748b',
-    marginTop: 15,
+    marginTop: 16,
     textAlign: 'center',
+    lineHeight: 24,
   },
   emptyButton: {
     backgroundColor: '#2563eb',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 25,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 24,
   },
   emptyButtonText: {
     color: 'white',

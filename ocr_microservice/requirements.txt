@@ -1,9 +1,0 @@
-fastapi
-uvicorn[standard]
-python-multipart
-transformers[torch]
-torch
-accelerate
-Pillow
-pytesseract
-python-dotenv
