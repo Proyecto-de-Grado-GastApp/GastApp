@@ -30,6 +30,7 @@ import DetallePresupuestoScreen from '../screens/DetallePresupuestoScreen';
 import CrearEtiquetaScreen from '../screens/CrearEtiquetaScreen';
 import EtiquetasScreen from '../screens/EtiquetasScreen';
 import EditarPresupuestoScreen from '../screens/EditarPresupuestoScreen';
+import { useIsFocused } from '@react-navigation/native';
 
 import axios from 'axios';
 import { API_BASE_URL } from '../api/urlConnection';
@@ -98,7 +99,9 @@ const MainTabs = () => {
   const navigation = useNavigation<any>();
   const [userData, setUserData] = useState<Usuario | null>(null);
   const [selectedImage, setSelectedImage] = useState<string>('');
-  const { token } = useAuth();
+  const { token, imagenPerfil  } = useAuth();
+
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -108,15 +111,18 @@ const MainTabs = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        setUserData(res.data);
-        setSelectedImage(res.data.imagenPerfil);
+        // Agregar ?t para evitar caché
+        const imagenUrl = `${res.data.imagenPerfil}?t=${Date.now()}`;
+        setUserData({ imagenPerfil: imagenUrl });
+        setSelectedImage(imagenUrl);
       } catch (error) {
         console.error('Error obteniendo datos del usuario:', error);
       }
     };
 
-    if (token) fetchUserData();
-  }, [token]);
+    if (token && isFocused) fetchUserData();
+  }, [token, isFocused]);
+
 
   return (
     <GastosProvider>
@@ -135,16 +141,15 @@ const MainTabs = () => {
           shadowOffset: { width: 0, height: 2 },
           shadowRadius: 3,
         }}>
-          <Image 
-            source={require('../images/logoGastApp.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>
+            GastApp
+          </Text>
+          
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {/* Nuevo botón para las etiquetas */}
             <TouchableOpacity 
               onPress={() => navigation.navigate('EtiquetasScreen')}
-              style={{ marginRight: 30 }}
+              style={{ marginRight: 15 }}
             >
               <Icon name="pricetags-outline" size={24} color="white" />
             </TouchableOpacity>
@@ -222,7 +227,7 @@ const AppNavigator = () => {
         }}
       >
         {token ? (
-           <>
+          <>
             <Stack.Screen
               name="MainTabs"
               component={MainTabs}
@@ -289,12 +294,8 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
+    marginLeft: 15,
     borderColor: 'white',
-  },
-  logo: {
-    width: 42,
-    height: 42,
-    tintColor: 'white'
   },
 });
 

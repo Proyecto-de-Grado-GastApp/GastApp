@@ -82,16 +82,6 @@ const SettingsScreen = () => {
         <Text style={styles.title}>Configuración de la App</Text>
 
         <View style={styles.item}>
-          <Text style={styles.label}>Notificaciones de recordatorio</Text>
-          <Switch
-            value={notificaciones}
-            onValueChange={toggleNotificaciones}
-            thumbColor={notificaciones ? '#2563eb' : '#ccc'}
-            trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-          />
-        </View>
-
-        <View style={styles.item}>
           <Text style={styles.label}>Moneda predeterminada</Text>
           <Text style={styles.value}>{moneda}</Text>
         </View>

@@ -10,6 +10,9 @@ interface AuthContextType {
   login: (token: string, userId: number) => Promise<void>; // Modificado
   logout: () => Promise<void>;
   checkToken: () => Promise<boolean>;
+  imagenPerfil: string | null;
+  setImagenPerfil: (url: string) => void;
+  user: { nombre?: string } | null;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -18,7 +21,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
-
+  const [imagenPerfil, setImagenPerfil] = useState<string | null>(null);
+  
   // Configuración inicial de axios
   useEffect(() => {
     const initializeAxios = async () => {
@@ -85,7 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, isLoading, login, logout, checkToken }}>
+    <AuthContext.Provider value={{ token, isLoading, login, logout, checkToken, imagenPerfil, setImagenPerfil, user: { nombre: '' } }}>
       {children}
     </AuthContext.Provider>
   );

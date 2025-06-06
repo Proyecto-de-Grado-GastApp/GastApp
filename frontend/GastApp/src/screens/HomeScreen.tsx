@@ -29,7 +29,7 @@ type Categoria = {
 };
 
 const HomeScreen = ({ navigation, route }: any) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [showWelcome, setShowWelcome] = useState(true);
   const [gastos, setGastos] = useState<any[]>([]);
   const [suscripciones, setSuscripciones] = useState<any[]>([]);
@@ -179,8 +179,8 @@ const HomeScreen = ({ navigation, route }: any) => {
       {showWelcome && (
         <Animated.View style={[styles.welcomeContainer, { opacity: fadeAnim }]}>
           <Icon name="happy-outline" size={40} color="#2563eb" />
-          <Text style={styles.welcomeText}>¡Bienvenido a GastApp!</Text>
-          <Text style={styles.welcomeSubtext}>Gestión inteligente de tus gastos</Text>
+            <Text style={styles.welcomeText}>¡Bienvenido{user?.nombre ? `, ${user.nombre}` : ''} a GastApp!</Text>
+            <Text style={styles.welcomeSubtext}>Tu asistente personal de finanzas</Text>
         </Animated.View>
       )}
 
@@ -190,7 +190,6 @@ const HomeScreen = ({ navigation, route }: any) => {
           <ActivityIndicator size="large" color="#2563eb" style={styles.loader} />
         ) : (
           <>
-            <Text style={styles.title}>Resumen de Gastos y Suscripciones</Text>
             
             {/* Card de resumen mensual */}
             <View style={styles.card}>

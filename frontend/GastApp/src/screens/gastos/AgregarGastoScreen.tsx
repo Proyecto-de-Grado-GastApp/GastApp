@@ -18,6 +18,8 @@ import { launchCamera as rnLaunchCamera, CameraOptions } from 'react-native-imag
 import { mostrarNotificacionNuevoGasto } from '../../notifications/notifeeService';
 import { mostrarNotificacionPresupuestoCasiAgotado, mostrarNotificacionPresupuestoSuperado } from "../../notifications/notifeeService";
 import notifee, { AndroidImportance } from '@notifee/react-native';
+import { format, parseISO, isWithinInterval } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type RootStackParamList = {
   AgregarGasto: undefined;
@@ -93,6 +95,15 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
     { id: 'mensual', nombre: 'Mensual' },
     { id: 'anual', nombre: 'Anual' },
   ];
+
+  const [uiState, setUiState] = useState({
+    showDatePicker: false,
+    showFrecuenciaModal: false,
+    showEtiquetasModal: false,
+    isLoading: false,
+    isOcrLoading: false,
+    isDataLoading: true,
+  });
 
   useEffect(() => {
     (async () => {
@@ -173,7 +184,8 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
   };
 
   const processImageForOCR = async (imageUri: string, type: string, fileName?: string) => {
-    setIsOcrLoading(true);
+    
+    setUiState(prev => ({...prev, isOcrLoading: true}));
     try {
       const formData = new FormData();
       formData.append('imageFile', {
@@ -227,7 +239,7 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
         error instanceof Error ? error.message : 'Ocurrió un error desconocido al procesar la imagen.'
       );
     } finally {
-      setIsOcrLoading(false);
+      setUiState(prev => ({...prev, isOcrLoading: false}));
     }
   };
 
@@ -328,11 +340,12 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
   };
 
   const handleFechaChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || fecha;
-    setShowDatePicker(Platform.OS === 'ios'); // En iOS se mantiene visible hasta que el usuario cierra
-    setFecha(currentDate);
-    if (Platform.OS === 'android' && event.type === 'set') { // En Android se cierra automáticamente
-        setShowDatePicker(false);
+    // Ocultar el picker en cualquier acción del usuario (seleccionar o cancelar)
+    setShowDatePicker(false);
+
+    // Solo actualizar la fecha si el usuario presionó "OK" y seleccionó una fecha
+    if (event.type === 'set' && selectedDate) {
+      setFecha(selectedDate);
     }
   };
 
@@ -481,109 +494,69 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text>Cargando datos iniciales...</Text>
+        <Text>Cargando formulario iniciales...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
+      <View style={styles.header} >
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
           <Icon name="arrow-back" size={24} color="#2563eb" />
         </TouchableOpacity>
-        <Text style={styles.title}>Crear un nuevo gasto</Text>
+        <Text style={styles.title}>Crear Gasto</Text>
         <View style={{ width: 24 }} />
       </View>
+
       <View style={styles.section}>
-      
-        <Text style={styles.label}>Descripción *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ej: Compra supermercado"
-          value={descripcion}
-          onChangeText={setDescripcion}
-        />
+        {uiState.isOcrLoading && (
+          <View style={styles.ocrLoadingOverlay}>
+            <ActivityIndicator size="large" color="#ffffff" />
+            <Text style={styles.ocrLoadingText}>Procesando ticket...</Text>
+          </View>
+        )}
+        <Text style={[styles.label, { marginTop: 0 }]}>Descripción *</Text>
+        <TextInput style={styles.input} placeholder="Ej: Compra supermercado" value={descripcion} onChangeText={setDescripcion} placeholderTextColor="#94a3b8" />
 
         <Text style={styles.label}>Cantidad (€) *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="0.00"
-          keyboardType="decimal-pad"
-          value={cantidad}
-          onChangeText={text => setCantidad(text.replace(',', '.'))}
-        />
+        <TextInput style={styles.input} placeholder="0.00" keyboardType="decimal-pad" value={cantidad} onChangeText={text => setCantidad(text.replace(',', '.'))} placeholderTextColor="#94a3b8" />
         
-        {/* //! */}
-        {/* Botón para escanear con cámara */}
-        <TouchableOpacity 
-          style={[styles.scanButton, { marginBottom: 10 }, isOcrLoading && styles.buttonDisabled]}
-          onPress={handleTakePhoto}
-          disabled={isOcrLoading}
-        >
-          {isOcrLoading ? (
-            <ActivityIndicator color="white" style={{ marginRight: 8 }} />
-          ) : (
-            <>
-              <Icon name="camera-outline" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text style={styles.buttonText}>Escanear Ticket con Cámara</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        {/* Botón para escanear desde galería */}
-        <TouchableOpacity 
-          style={[styles.scanButton, { backgroundColor: '#059669', marginBottom: 20 }, isOcrLoading && styles.buttonDisabled]}
-          onPress={handleSelectFromGallery}
-          disabled={isOcrLoading}
-        >
-          {isOcrLoading ? (
-            <ActivityIndicator color="white" style={{ marginRight: 8 }} />
-          ) : (
-            <>
-              <Icon name="images-outline" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text style={styles.buttonText}>Escanear Imagen desde Galería</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        {/* //! */}
+        <Text style={styles.label}>Cargar datos automáticamente: </Text>
+        <View style={styles.ocrButtonContainer}>
+            <TouchableOpacity style={styles.scanButton} onPress={handleTakePhoto} disabled={uiState.isOcrLoading}>
+              {uiState.isOcrLoading ? <ActivityIndicator color="white" /> : <Icon name="camera-outline" size={20} color="white" />}
+              <Text style={styles.scanButtonText}>Escanear Ticket</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.scanButton, {backgroundColor: '#34d399'}]} onPress={handleSelectFromGallery} disabled={uiState.isOcrLoading}>
+              {uiState.isOcrLoading ? <ActivityIndicator color="white" /> : <Icon name="images-outline" size={20} color="white" />}
+              <Text style={styles.scanButtonText}>Desde Galería</Text>
+            </TouchableOpacity>
+        </View>
+        <Text style={styles.discreteText}>Esta herramienta está en proceso de mejora, puede fallar.</Text>
         
         <Text style={styles.label}>Fecha</Text>
         <TouchableOpacity 
           style={styles.input} 
-          onPress={() => Platform.OS === 'android' && setShowDatePicker(true)}
-        > 
-          <Text>{formatDate(fecha)}</Text>
-          {Platform.OS === 'ios' && <Icon name="calendar" size={20} color="#666" />}
+          onPress={() => setShowDatePicker(true)}
+        >
+            <Text style={styles.inputText}>{format(fecha, "dd 'de' MMMM, yyyy", { locale: es })}</Text>
+            <Icon name="calendar-outline" size={20} color="#64748b" />
         </TouchableOpacity>
-
-        {(showDatePicker || Platform.OS === 'ios') && (
+        {showDatePicker && (
           <DateTimePicker
             value={fecha}
             mode="date"
-            display={Platform.OS === 'ios' ? 'default' : 'calendar'}
+            display="default" // 'default' funciona bien y muestra el estilo nativo en ambas plataformas
             onChange={handleFechaChange}
           />
         )}
         
         <Text style={styles.label}>Categoría *</Text>
         <View style={styles.categoriesContainer}>
-          {categorias.filter(cat => cat.id !==9).map(cat => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryButton,
-                categoriaId === cat.id && styles.categoryButtonSelected
-              ]}
-              onPress={() => setCategoriaId(cat.id)}
-            >
-              <Text style={[
-                styles.categoryText,
-                categoriaId === cat.id && styles.categoryTextSelected
-              ]}>
-                {cat.nombre}
-              </Text>
+          {categorias.map(cat => (
+            <TouchableOpacity key={cat.id} style={[styles.categoryButton, categoriaId === cat.id && styles.categoryButtonSelected]} onPress={() => setCategoriaId(cat.id)}>
+              <Text style={[styles.categoryText, categoriaId === cat.id && styles.categoryTextSelected]}>{cat.nombre}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -591,277 +564,328 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
         <Text style={styles.label}>Método de Pago</Text>
         <View style={styles.categoriesContainer}>
           {metodosPago.map(mp => (
-            <TouchableOpacity
-              key={mp.id}
-              style={[
-                styles.categoryButton,
-                metodoPagoId === mp.id && styles.categoryButtonSelected
-              ]}
-              onPress={() => setMetodoPagoId(mp.id)}
-            >
-              <Text style={[
-                styles.categoryText,
-                metodoPagoId === mp.id && styles.categoryTextSelected
-              ]}>
-                {mp.nombreMetodo} {/* Cambiado de mp.nombre a mp.nombreMetodo */}
-              </Text>
+            <TouchableOpacity key={mp.id} style={[styles.categoryButton, metodoPagoId === mp.id && styles.categoryButtonSelected]} onPress={() => setMetodoPagoId(mp.id)}>
+              <Text style={[styles.categoryText, metodoPagoId === mp.id && styles.categoryTextSelected]}>{mp.nombreMetodo}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <Text style={styles.label}>Etiquetas</Text>
-        <TouchableOpacity 
-          style={styles.input}
-          onPress={() => setShowEtiquetasModal(true)}
-        >
-          <Text>
-            {etiquetasSeleccionadas.length > 0 
-              ? `${etiquetasSeleccionadas.length} seleccionadas` 
-              : 'Seleccionar etiquetas'}
-          </Text>
-          <Icon name="chevron-down" size={20} color="#666" />
+        <TouchableOpacity style={styles.input} onPress={() => setShowEtiquetasModal(true)}>
+          <Text style={etiquetasSeleccionadas.length === 0 ? styles.placeholderText : styles.inputText}>{etiquetasSeleccionadas.length > 0 ? `${etiquetasSeleccionadas.length} seleccionadas` : 'Seleccionar etiquetas'}</Text>
+          <Icon name="chevron-down" size={20} color="#64748b" />
         </TouchableOpacity>
       </View>
 
-      {/* Sección de gasto frecuente */}
-      <View style={styles.section}>
+      <View style={[styles.section, { paddingBottom: 12 }]}>
         <View style={styles.switchContainer}>
-          <Text style={styles.label}>¿Es un gasto frecuente?</Text>
-          <Switch
-            value={esFrecuente}
-            onValueChange={setEsFrecuente}
-            trackColor={{ false: '#767577', true: '#2563eb' }}
-          />
+          <Text style={[styles.label, { marginTop: 0 }]}>¿Es un gasto frecuente?</Text>
+          <Switch value={esFrecuente} onValueChange={setEsFrecuente} trackColor={{ false: '#d1d5db', true: '#81b0ff' }} thumbColor="#2563eb"/>
         </View>
 
         {esFrecuente && (
-          <>
+          <View>
             <Text style={styles.label}>Frecuencia</Text>
-            <TouchableOpacity 
-              style={styles.input} 
-              onPress={() => setShowFrecuenciaModal(true)}
-            >
-              <Text>{frecuencias.find(f => f.id === frecuencia)?.nombre}</Text>
-              <Icon name="chevron-down" size={20} color="#666" />
+            <TouchableOpacity style={styles.input} onPress={() => setShowFrecuenciaModal(true)}>
+              <Text style={styles.inputText}>{frecuencias.find(f => f.id === frecuencia)?.nombre}</Text>
+              <Icon name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
-
             <View style={styles.switchContainer}>
               <Text style={styles.label}>¿Notificar próximo pago?</Text>
-              <Switch
-                value={notificar}
-                onValueChange={setNotificar}
-                trackColor={{ false: '#767577', true: '#2563eb' }}
-              />
+              <Switch value={notificar} onValueChange={setNotificar} trackColor={{ false: '#d1d5db', true: '#81b0ff' }} thumbColor="#2563eb" />
             </View>
-          </>
+          </View>
         )}
       </View>
 
-      {/* Sección de notas */}
       <View style={styles.section}>
-        <Text style={styles.label}>Notas adicionales</Text>
-        <TextInput
-          style={[styles.input, { height: 80 }]}
-          placeholder="Agrega detalles adicionales"
-          value={notas}
-          onChangeText={setNotas}
-          multiline
-        />
+        <Text style={[styles.label, { marginTop: 0 }]}>Notas adicionales</Text>
+        <TextInput style={[styles.input, { height: 100, textAlignVertical: 'top', paddingTop: 12 }]} placeholder="Agrega cualquier detalle..." value={notas} onChangeText={setNotas} multiline placeholderTextColor="#94a3b8" />
       </View>
 
-      {/* Botón de guardar */}
-      <TouchableOpacity 
-        style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={handleGuardar}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text style={styles.buttonText}>Guardar Gasto</Text>
-        )}
+      <TouchableOpacity style={[styles.button, uiState.isLoading && styles.buttonDisabled]} onPress={handleGuardar} disabled={uiState.isLoading}>
+        {uiState.isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Guardar Gasto</Text>}
       </TouchableOpacity>
 
-      {/* Modal de frecuencia */}
-      <Modal
-        visible={showFrecuenciaModal}
+                    {/* Modal de etiquetas */}
+                    <Modal
+        visible={showEtiquetasModal}
         transparent
         animationType="slide"
       >
-        <TouchableWithoutFeedback onPress={() => setShowFrecuenciaModal(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowEtiquetasModal(false)}>
           <View style={styles.modalOverlay} />
         </TouchableWithoutFeedback>
         
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Seleccionar Frecuencia</Text>
-          {frecuencias.map(freq => (
+          <Text style={styles.modalTitle}>Seleccionar Etiquetas</Text>
+          
+          {/* Contenedor para las etiquetas seleccionadas con scroll horizontal */}
+          {etiquetasSeleccionadas.length > 0 && (
+            <View style={styles.selectedTagsContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.selectedTagsScrollContent}
+              >
+                {etiquetasSeleccionadas.map(id => {
+                  const etiqueta = etiquetas.find(e => e.id === id);
+                  if (!etiqueta) return null;
+                  
+                  return (
+                    <View 
+                      key={id} 
+                      style={[
+                        styles.selectedTag,
+                        { backgroundColor: etiqueta.color || '#3b82f6' }
+                      ]}
+                    >
+                      <Text style={styles.selectedTagText}>{etiqueta.nombre}</Text>
+                      <TouchableOpacity 
+                        onPress={() => toggleEtiqueta(id)}
+                        style={styles.removeTagButton}
+                      >
+                        <Icon name="close" size={16} color="white" />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Lista de todas las etiquetas disponibles */}
+          <FlatList
+            data={etiquetas}
+            keyExtractor={item => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.tagItem,
+                  etiquetasSeleccionadas.includes(item.id) && styles.tagItemSelected,
+                  { borderLeftColor: item.color || '#3b82f6' }
+                ]}
+                onPress={() => toggleEtiqueta(item.id)}
+              >
+                <View style={styles.tagLeftContent}>
+                  <View style={[
+                    styles.tagColorIndicator,
+                    { backgroundColor: item.color || '#3b82f6' }
+                  ]} />
+                  <Text style={styles.tagText}>{item.nombre}</Text>
+                </View>
+                {etiquetasSeleccionadas.includes(item.id) && (
+                  <Icon name="checkmark-circle" size={24} color={item.color || '#3b82f6'} />
+                )}
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={styles.tagListContent}
+          />
+
+          <View style={styles.tagModalFooter}>
             <TouchableOpacity
-              key={freq.id}
-              style={styles.modalOption}
+              style={styles.addTagButton}
               onPress={() => {
-                setFrecuencia(freq.id);
-                setShowFrecuenciaModal(false);
+                setShowEtiquetasModal(false);
+                navigation.navigate('CrearEtiquetaScreen');
               }}
             >
-              <Text>{freq.nombre}</Text>
-              {frecuencia === freq.id && <Icon name="checkmark" size={20} color="#2563eb" />}
+              <Icon name="add" size={20} color="white" style={styles.addTagIcon} />
+              <Text style={styles.addTagButtonText}>Añadir Nueva Etiqueta</Text>
             </TouchableOpacity>
-          ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowEtiquetasModal(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Aceptar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
-        
-              {/* Modal de etiquetas */}
-              <Modal
-  visible={showEtiquetasModal}
-  transparent
-  animationType="slide"
->
-  <TouchableWithoutFeedback onPress={() => setShowEtiquetasModal(false)}>
-    <View style={styles.modalOverlay} />
-  </TouchableWithoutFeedback>
-  
-  <View style={styles.modalContent}>
-    <Text style={styles.modalTitle}>Seleccionar Etiquetas</Text>
-    
-    {/* Contenedor para las etiquetas seleccionadas con scroll horizontal */}
-    {etiquetasSeleccionadas.length > 0 && (
-      <View style={styles.selectedTagsContainer}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.selectedTagsScrollContent}
+        {/* Modal de frecuencia */}
+        <Modal
+          visible={showFrecuenciaModal}
+          transparent
+          animationType="slide"
         >
-          {etiquetasSeleccionadas.map(id => {
-            const etiqueta = etiquetas.find(e => e.id === id);
-            if (!etiqueta) return null;
-            
-            return (
-              <View 
-                key={id} 
-                style={[
-                  styles.selectedTag,
-                  { backgroundColor: etiqueta.color || '#3b82f6' }
-                ]}
+          <TouchableWithoutFeedback onPress={() => setShowFrecuenciaModal(false)}>
+            <View style={styles.modalOverlay} />
+          </TouchableWithoutFeedback>
+          
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Seleccionar Frecuencia</Text>
+            {frecuencias.map(freq => (
+              <TouchableOpacity
+                key={freq.id}
+                style={styles.modalOption}
+                onPress={() => {
+                  setFrecuencia(freq.id);
+                  setShowFrecuenciaModal(false);
+                }}
               >
-                <Text style={styles.selectedTagText}>{etiqueta.nombre}</Text>
-                <TouchableOpacity 
-                  onPress={() => toggleEtiqueta(id)}
-                  style={styles.removeTagButton}
-                >
-                  <Icon name="close" size={16} color="white" />
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </ScrollView>
-      </View>
-    )}
-
-    {/* Lista de todas las etiquetas disponibles */}
-    <FlatList
-      data={etiquetas}
-      keyExtractor={item => item.id.toString()}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={[
-            styles.tagItem,
-            etiquetasSeleccionadas.includes(item.id) && styles.tagItemSelected,
-            { borderLeftColor: item.color || '#3b82f6' }
-          ]}
-          onPress={() => toggleEtiqueta(item.id)}
-        >
-          <View style={styles.tagLeftContent}>
-            <View style={[
-              styles.tagColorIndicator,
-              { backgroundColor: item.color || '#3b82f6' }
-            ]} />
-            <Text style={styles.tagText}>{item.nombre}</Text>
+                <Text>{freq.nombre}</Text>
+                {frecuencia === freq.id && <Icon name="checkmark" size={20} color="#2563eb" />}
+              </TouchableOpacity>
+            ))}
           </View>
-          {etiquetasSeleccionadas.includes(item.id) && (
-            <Icon name="checkmark-circle" size={24} color={item.color || '#3b82f6'} />
-          )}
-        </TouchableOpacity>
-      )}
-      contentContainerStyle={styles.tagListContent}
-    />
-
-    <View style={styles.tagModalFooter}>
-      <TouchableOpacity
-        style={styles.addTagButton}
-        onPress={() => {
-          setShowEtiquetasModal(false);
-          navigation.navigate('CrearEtiquetaScreen');
-        }}
-      >
-        <Icon name="add" size={20} color="white" style={styles.addTagIcon} />
-        <Text style={styles.addTagButtonText}>Añadir Nueva Etiqueta</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.modalCloseButton}
-        onPress={() => setShowEtiquetasModal(false)}
-      >
-        <Text style={styles.modalCloseButtonText}>Aceptar</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+        </Modal>
+        
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: 
-  { 
-    flex: 1, 
-    backgroundColor: '#f8fafc' 
-  },
-  contentContainer: 
-  { 
-    padding: 20, 
-    paddingBottom: 0
-  },
-  loadingContainer: 
-  { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  section: 
-  { 
-    backgroundColor: 'white', 
-    borderRadius: 10, 
-    padding: 15, 
-    marginBottom: 15, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 1 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 3, 
-    elevation: 2 
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  
-  label: { fontSize: 16, fontWeight: '500', marginBottom: 8, color: '#333' },
-  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 15, fontSize: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  container: {
+        flex: 1,
+        backgroundColor: '#f1f5f9',
+    },
+    contentContainer: {
+        paddingHorizontal: 16,
+        paddingBottom: 40,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f1f5f9',
+    },
+    loadingText: {
+        marginTop: 8,
+        fontSize: 16,
+        color: '#64748b',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 4, 
+    },
+    title: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#1e293b',
+        textAlign: 'center',
+        flex: 1,
+    },
+    section: {
+        backgroundColor: 'white',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 16,
+        shadowColor: '#1e293b',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 3,
+        position: 'relative',
+    },
+    label: {
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: 10,
+        marginTop: 15,
+        color: '#334155',
+    },
+    input: {
+        backgroundColor: '#f8fafc',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderRadius: 8,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        fontSize: 16,
+        color: '#0f172a',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    inputText: {
+        color: '#0f172a',
+        fontSize: 16,
+    },
+    placeholderText: {
+        color: '#94a3b8',
+        fontSize: 16,
+    },
+    ocrButtonContainer: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 10,
+    },
+    scanButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#1d4ed8',
+
+        paddingVertical: 12,
+        borderRadius: 8,
+        gap: 8,
+    },
+    scanButtonText: {
+        color: 'white',
+        fontWeight: '600',
+    },
+    categoriesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        marginBottom: 10,
+        
+    },
+    categoryButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        backgroundColor: '#f8fafc',
+    },
+    categoryButtonSelected: {
+        backgroundColor: '#2563eb',
+        borderColor: '#2563eb',
+    },
+    categoryText: {
+        color: '#334155',
+        fontWeight: '500',
+    },
+    categoryTextSelected: {
+        color: 'white',
+        fontWeight: '600',
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    button: {
+        backgroundColor: '#2563eb',
+        padding: 16,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 10,
+        minHeight: 52,
+    },
+    buttonDisabled: {
+        backgroundColor: '#9ca3af',
+    },
+    buttonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+ 
   categoriesScrollView: { marginBottom: 10 },
-  categoriesContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-  categoryButton: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: '#ddd', marginRight: 8, marginBottom: 8, backgroundColor: '#f5f5f5' },
-  categoryButtonSelected: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  categoryText: { color: '#333' },
-  categoryTextSelected: { color: 'white' },
-  button: { backgroundColor: '#2563eb', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 10, marginBottom: 30 },
-  buttonDisabled: { backgroundColor: '#9ca3af', opacity: 0.7 }, // Color gris para deshabilitado
-  buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+    discreteText:{
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+    marginBottom: 8,
+    },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: {
     backgroundColor: 'white',
@@ -882,7 +906,7 @@ const styles = StyleSheet.create({
   color: '#1e293b',
 },
   modalOption: { paddingVertical: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  scanButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal:12, borderRadius: 8, marginTop: 5 },
+ 
   iosDateDoneButton: { // Estilo para el botón OK de iOS en el DatePicker
     padding: 10,
     alignItems: 'flex-end', // Alinearlo a la derecha
@@ -1014,6 +1038,21 @@ addTagButtonText: {
   fontSize: 16,
   fontWeight: '500',
 },
+ocrLoadingOverlay: {
+        ...StyleSheet.absoluteFillObject, // Cubre completamente el componente padre
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 12, // Para que coincida con el borde de la tarjeta
+        zIndex: 10, // Para asegurarse de que esté por encima de otros elementos
+    },
+    ocrLoadingText: {
+        color: 'white',
+        marginTop: 12,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+
 });
 
 

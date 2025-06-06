@@ -66,7 +66,7 @@ export default function GastosScreen({ navigation }: any) {
 
   // --- Datos para los Filtros ---
   const categoriasFiltro: FiltroOpcion[] = [
-    { label: '-- Todas las Categorías --', value: '' },
+    { label: 'Ver categorías', value: '' },
     { label: 'Alimentación', value: 1 },
     { label: 'Transporte', value: 2 },
     { label: 'Salud', value: 3 },

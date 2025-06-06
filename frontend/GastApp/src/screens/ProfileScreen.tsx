@@ -119,6 +119,7 @@ const ProfileScreen = ({ navigation }: any) => {
       });
 
       setUserData(prev => prev ? { ...prev, imagenPerfil: imagenFinal } : prev);
+      
       setModalVisible(false);
     } catch (error) {
       console.error("Error actualizando imagen de perfil:", error);
@@ -247,7 +248,7 @@ const ProfileScreen = ({ navigation }: any) => {
       <View style={styles.header}>
         <Pressable onPress={() => setModalVisible(true)}>
           <Image
-            source={{ uri: userData.imagenPerfil || 'https://randomuser.me/api/portraits/lego/1.jpg' }}
+            source={{ uri: `${userData.imagenPerfil}?t=${Date.now()}` || 'https://randomuser.me/api/portraits/lego/1.jpg' }}
             style={styles.profileImage}
           />
           <View style={styles.editIconContainer}>
@@ -316,7 +317,7 @@ const ProfileScreen = ({ navigation }: any) => {
             <View style={styles.previewContainer}>
               <Text style={styles.previewTitle}>Imágen actual:</Text>
               <Image 
-                source={{ uri: selectedImage }} 
+                source={{ uri: `${selectedImage}?t=${Date.now()}` }} 
                 style={styles.previewImage} 
               />
             </View>

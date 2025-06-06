@@ -7,7 +7,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { StackNavigationProp } from '@react-navigation/stack';
 import LoadingScreen from '../components/LoadingScreen';
 
-type MainAppScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainApp'>;
+type MainAppScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 const MainAppScreen = () => {
   const { token, isLoading, checkToken } = useAuth();
