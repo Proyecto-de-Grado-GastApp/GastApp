@@ -93,9 +93,12 @@ type Usuario = {
   imagenPerfil: string;
 };
 
+
+// Llama a la función para crear la barra de navegación inferior.
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 const MainTabs = () => {
+  // Guardamos los estados de las variables utilizando useState
   const navigation = useNavigation<any>();
   const [userData, setUserData] = useState<Usuario | null>(null);
   const [selectedImage, setSelectedImage] = useState<string>('');
@@ -141,9 +144,11 @@ const MainTabs = () => {
           shadowOffset: { width: 0, height: 2 },
           shadowRadius: 3,
         }}>
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>
-            GastApp
-          </Text>
+          <Image 
+            source={require('../images/logoGastApp.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {/* Nuevo botón para las etiquetas */}
@@ -226,7 +231,7 @@ const AppNavigator = () => {
           headerShown: false,
         }}
       >
-        {token ? (
+        {token ? ( // Si está el token activo podemos acceder a las siguiente pantallas
           <>
             <Stack.Screen
               name="MainTabs"
@@ -296,6 +301,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginLeft: 15,
     borderColor: 'white',
+  },
+  logo: {
+    width: 42,
+    height: 42,
+    tintColor: 'white'
   },
 });
 
