@@ -1,15 +1,23 @@
 const fs = require('fs');
 const path = require('path');
-const { getSpotifyData } = require('./spotify');
-const { getNetflixData } = require('./netflix');
-const { getStravaData } = require('./strava');
+const { getSpotifyData } = require('./suscripciones/spotify');
+const { getNetflixData } = require('./suscripciones/netflix');
+const { getStravaData } = require('./suscripciones/strava');
+const { getDaznData } = require('./suscripciones/dazn');
+const { getPrimeVideoData } = require('./suscripciones/primevideo');
+const { getDisneyPlusData } = require('./suscripciones/disney');
+
 
 async function generarSuscripciones() {
   const spotify = await getSpotifyData();
   const netflix = await getNetflixData();
   const strava = await getStravaData();
+  const dazn = await getDaznData();
+  const primevideo = await getPrimeVideoData();
+  const disney = await getDisneyPlusData();
 
-  const suscripciones = [spotify, netflix, strava];
+  const suscripciones = [spotify, netflix, strava, dazn, primevideo, disney];
+;
 
   const destino = path.resolve(__dirname, '../frontend/GastApp/src/data/suscripcionesData.ts');
 

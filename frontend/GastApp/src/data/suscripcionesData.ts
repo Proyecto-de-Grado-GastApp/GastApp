@@ -4,11 +4,11 @@ export const suscripciones = [
     "planes": [
       {
         "nombre": "Individual",
-        "precio": 0
+        "precio": 10.99
       },
       {
         "nombre": "Estudiantes",
-        "precio": 0
+        "precio": 5.99
       },
       {
         "nombre": "Duo",
@@ -51,6 +51,57 @@ export const suscripciones = [
       {
         "nombre": "Plan familiar",
         "precio": 1.87
+      }
+    ]
+  },
+  {
+    "nombre": "DAZN",
+    "planes": [
+      {
+        "nombre": "Fútbol",
+        "precio": 9.99
+      },
+      {
+        "nombre": "Motor",
+        "precio": 19.99
+      },
+      {
+        "nombre": "Pro",
+        "precio": 24.99
+      },
+      {
+        "nombre": "Pro Multihogar",
+        "precio": 34.99
+      }
+    ]
+  },
+  {
+    "nombre": "Prime Video",
+    "planes": [
+      {
+        "nombre": "Anual",
+        "precio": 49.9
+      },
+      {
+        "nombre": "Mensual",
+        "precio": 4.99
+      }
+    ]
+  },
+  {
+    "nombre": "Disney+",
+    "planes": [
+      {
+        "nombre": "PRÉMIUM",
+        "precio": 13.99
+      },
+      {
+        "nombre": "ESTÁNDAR",
+        "precio": 9.99
+      },
+      {
+        "nombre": "ESTÁNDAR CON ANUNCIOS",
+        "precio": 5.99
       }
     ]
   }

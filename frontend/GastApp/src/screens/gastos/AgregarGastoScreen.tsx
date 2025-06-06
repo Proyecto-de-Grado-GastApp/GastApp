@@ -385,7 +385,6 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
 
   setIsLoading(true);
 
-  // --- 2. Preparación del objeto de datos del gasto ---
   const mapFrecuencia = { 'diaria': 1, 'semanal': 2, 'mensual': 3, 'anual': 4 };
   const gastoData = {
     CategoriaId: categoriaId,
@@ -400,10 +399,9 @@ const AgregarGastoScreen: React.FC<{ navigation: StackNavigationProp<RootStackPa
     EtiquetasPersonalizadasIds: etiquetasSeleccionadas
   };
 
-  // --- 3. Bloque Try/Catch para la operación crítica ---
+  
   try {
-    // Intenta guardar el gasto en la base de datos.
-    // Esta es la única operación que, si falla, debe mostrar un error al usuario.
+    
     await axios.post(`${API_BASE_URL}/api/gastos`, gastoData, {
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
     });

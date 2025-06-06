@@ -58,13 +58,38 @@ export const renderIcon = (descripcion: string) => {
     );
   }
 
+  if (key === 'dazn') {
+    return (
+      <Image
+        source={require('../images/dazn.png')}
+        style={{ width: 38, height: 38, resizeMode: 'contain'}}
+      />
+    );
+  }
+
+  if (key === 'disney+') {
+    return (
+      <View
+        style={{
+          backgroundColor: 'black',
+          borderRadius: 8,
+          padding: 4,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Image
+          source={require('../images/disney.png')}
+          style={{ width: 38, height: 38, resizeMode: 'contain'}}
+        />
+      </View>
+      
+    );
+  }
+
   const icons: { [key: string]: string } = {
     spotify: 'spotify',
-    // strava: 'strava',
-    youtube: 'youtube',
-    hbo: 'tv',
-    prime: 'amazon',
-    disney: 'magic',
+    "prime video": 'amazon',
   };
 
   const iconName = icons[key] || 'apps';
@@ -87,8 +112,8 @@ export const getColorMarca = (descripcion: string) => {
     strava: '#FC4C02',    // Naranja de Strava
     youtube: '#FF0000',   // Rojo de YouTube
     hbo: '#4B0082',       // Azul oscuro de HBO (ejemplo)
-    prime: '#00A8E1',     // Azul de Amazon Prime
-    disney: '#113CCF',    // Azul de Disney+
+    "prime video": '#00A8E1',     // Azul de Amazon Prime
+    "disney+": '#113CCF',    // Azul de Disney+
     default: '#64748b',   // Gris por defecto
   };
   return colors[key] || colors['default'];

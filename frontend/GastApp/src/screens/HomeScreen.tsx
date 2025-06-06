@@ -70,8 +70,8 @@ const HomeScreen = ({ navigation, route }: any) => {
 
       setGastos(gastosOrdenadosFiltrados);
 
-      //Guardo suscripciones
-      const suscripciones = res.data.filter((gasto: any) => gasto.categoriaId === 9);
+      //Guardo suscripciones, filtro y ordeno en la misma linea
+      const suscripciones = res.data.filter((gasto: any) => gasto.categoriaId === 9).sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
       setSuscripciones(suscripciones);
 
